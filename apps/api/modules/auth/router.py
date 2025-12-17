@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Any
 from datetime import timedelta
+from jose import JWTError, jwt
 
 from apps.api.core.database import get_db
-from apps.api.modules.auth.schemas import UserCreate, UserLogin, Token, UserResponse, ForgotPasswordRequest, ResetPasswordRequest
-from apps.api.modules.auth.service import AuthService, ACCESS_TOKEN_EXPIRE_MINUTES
+from apps.api.modules.auth.schemas import UserCreate, UserLogin, Token, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, ProfileUpdate
+from apps.api.modules.auth.service import AuthService, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ALGORITHM
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
@@ -14,6 +15,27 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
 def get_auth_service(db: Session = Depends(get_db)):
     from apps.api.core.container import container
     return AuthService(db, container.email_service, container.event_bus)
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Extract current user from JWT token"""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("id")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    from apps.api.core.models import User
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
 @router.post("/signup", response_model=Token)
 def signup(user: UserCreate, service: AuthService = Depends(get_auth_service)):
@@ -81,8 +103,24 @@ def buyer_login(form_data: UserLogin, service: AuthService = Depends(get_auth_se
     refresh_token = service.create_refresh_token(data={"sub": user.email, "role": user.role, "id": user.id})
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token, "user": user}
 
+@router.put("/profile", response_model=UserResponse)
+def update_profile(
+    profile_data: ProfileUpdate,
+    current_user = Depends(get_current_user),
+    service: AuthService = Depends(get_auth_service)
+):
+    """Update user profile data in database"""
+    updated_user = service.update_profile(current_user.id, profile_data.dict())
+    return updated_user
+
+@router.get("/profile", response_model=UserResponse)
+def get_profile(current_user = Depends(get_current_user)):
+    """Get current user profile"""
+    return current_user
+
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest):
     # Always return success message
     # TODO: Implement actual email logic invocation
     return {"message": "If this email is registered, a reset link has been sent."}
+

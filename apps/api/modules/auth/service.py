@@ -81,3 +81,25 @@ class AuthService:
         if not self.verify_password(password, user.password_hash):
             return False
         return user
+
+    def update_profile(self, user_id: int, profile_data: dict):
+        """Update user's profile data in the database"""
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Merge new data with existing profile_data
+        existing_data = user.profile_data or {}
+        # Filter out None values from the update
+        new_data = {k: v for k, v in profile_data.items() if v is not None}
+        merged_data = {**existing_data, **new_data}
+        
+        user.profile_data = merged_data
+        self.db.commit()
+        self.db.refresh(user)
+        
+        return user
+
+    def get_user_by_id(self, user_id: int):
+        """Get user by ID"""
+        return self.db.query(User).filter(User.id == user_id).first()
