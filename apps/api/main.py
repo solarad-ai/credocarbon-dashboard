@@ -15,6 +15,7 @@ from apps.api.modules.wallet.router import router as wallet_router
 from apps.api.modules.dashboard.router import router as dashboard_router
 from apps.api.modules.marketplace.router import router as marketplace_router
 from apps.api.modules.retirement.router import router as retirement_router
+from apps.api.modules.generation.router import router as generation_router
 
 app = FastAPI(title="CredoCarbon API", version="0.1.0")
 
@@ -40,6 +41,7 @@ app.include_router(wallet_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(marketplace_router, prefix="/api")
 app.include_router(retirement_router, prefix="/api")
+app.include_router(generation_router, prefix="/api")
 
 # Dependency Injection Container (Simple manual DI for now)
 # Container moved to core/container.py

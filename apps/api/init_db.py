@@ -18,6 +18,11 @@ from apps.api.core.models import (
     Notification, CreditHolding, Transaction, Retirement,
     MarketListing, Offer
 )
+# Import generation module models
+from apps.api.modules.generation.models import (
+    UploadedFile, DatasetMapping, GenerationTimeseries, 
+    CreditEstimation, GridEmissionFactor
+)
 
 def init_database():
     print("\n" + "="*50)
