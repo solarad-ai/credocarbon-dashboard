@@ -135,16 +135,37 @@ def get_recent_activity(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get recent activity from transactions"""
+    """Get recent activity from transactions and project updates"""
     
+    activities = []
+    
+    # Helper function to format timestamps
+    def format_timestamp(dt):
+        if not dt:
+            return ""
+        delta = datetime.utcnow() - dt
+        if delta.days == 0:
+            if delta.seconds < 60:
+                return "Just now"
+            elif delta.seconds < 3600:
+                return f"{delta.seconds // 60} minutes ago"
+            else:
+                return f"{delta.seconds // 3600} hours ago"
+        elif delta.days == 1:
+            return "Yesterday"
+        elif delta.days < 7:
+            return f"{delta.days} days ago"
+        else:
+            return dt.strftime("%b %d")
+    
+    # Get transactions
     transactions = db.query(Transaction)\
         .filter(Transaction.user_id == current_user.id)\
         .order_by(Transaction.created_at.desc())\
         .limit(limit)\
         .all()
     
-    activities = []
-    for i, t in enumerate(transactions):
+    for t in transactions:
         project = db.query(Project).filter(Project.id == t.project_id).first() if t.project_id else None
         project_name = project.name if project else "Unknown"
         
@@ -159,33 +180,206 @@ def get_recent_activity(
         
         title, description, icon = type_config.get(t.type, ("Transaction", f"{t.quantity} credits", "activity"))
         
-        # Format timestamp
-        if t.created_at:
-            delta = datetime.utcnow() - t.created_at
-            if delta.days == 0:
-                if delta.seconds < 3600:
-                    timestamp = f"{delta.seconds // 60} minutes ago"
-                else:
-                    timestamp = f"{delta.seconds // 3600} hours ago"
-            elif delta.days == 1:
-                timestamp = "Yesterday"
-            elif delta.days < 7:
-                timestamp = f"{delta.days} days ago"
-            else:
-                timestamp = t.created_at.strftime("%b %d")
-        else:
-            timestamp = ""
-        
-        activities.append(ActivityItem(
-            id=t.id,
-            type=t.type.value,
-            title=title,
-            description=description,
-            timestamp=timestamp,
-            icon=icon
-        ))
+        activities.append({
+            "id": t.id,
+            "type": t.type.value,
+            "title": title,
+            "description": description,
+            "timestamp": format_timestamp(t.created_at),
+            "icon": icon,
+            "sort_time": t.created_at
+        })
     
-    return activities
+    # Get project activities (creation, updates, status changes)
+    projects = db.query(Project)\
+        .filter(Project.developer_id == current_user.id)\
+        .order_by(Project.updated_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    for p in projects:
+        # Project creation activity
+        activities.append({
+            "id": p.id * 10000,  # Unique ID
+            "type": "project_created",
+            "title": "Project Created",
+            "description": f"Created project '{p.name}'",
+            "timestamp": format_timestamp(p.created_at),
+            "icon": "folder-plus",
+            "sort_time": p.created_at
+        })
+        
+        # Project update activity (if updated after creation)
+        if p.updated_at and p.created_at and p.updated_at > p.created_at + timedelta(minutes=1):
+            # Determine what was updated based on wizard_data
+            wd = p.wizard_data or {}
+            update_description = "Project updated"
+            
+            if wd.get('estimationResult'):
+                update_description = f"Credit estimation completed for '{p.name}'"
+            elif wd.get('stakeholders') and len(wd.get('stakeholders', [])) > 0:
+                update_description = f"Stakeholders added to '{p.name}'"
+            elif wd.get('compliance'):
+                update_description = f"Compliance checklist updated for '{p.name}'"
+            elif wd.get('registrySubmission'):
+                update_description = f"Registry documents generated for '{p.name}'"
+            else:
+                update_description = f"Wizard progress saved for '{p.name}'"
+            
+            activities.append({
+                "id": p.id * 10000 + 1,
+                "type": "project_updated",
+                "title": "Project Updated",
+                "description": update_description,
+                "timestamp": format_timestamp(p.updated_at),
+                "icon": "edit",
+                "sort_time": p.updated_at
+            })
+        
+        # Status change activity (if not draft)
+        if p.status and p.status != ProjectStatus.DRAFT:
+            status_titles = {
+                ProjectStatus.SUBMITTED_TO_VVB: ("Submitted to Registry", f"'{p.name}' submitted for validation"),
+                ProjectStatus.VALIDATION_PENDING: ("Validation Started", f"'{p.name}' is being validated"),
+                ProjectStatus.VALIDATION_APPROVED: ("Validation Approved", f"'{p.name}' passed validation"),
+                ProjectStatus.VERIFICATION_PENDING: ("Verification Started", f"'{p.name}' is being verified"),
+                ProjectStatus.VERIFICATION_APPROVED: ("Verification Approved", f"'{p.name}' passed verification"),
+                ProjectStatus.REGISTRY_REVIEW: ("Registry Review", f"'{p.name}' is under registry review"),
+                ProjectStatus.ISSUED: ("Credits Issued", f"Carbon credits issued for '{p.name}'"),
+            }
+            
+            if p.status in status_titles:
+                title, description = status_titles[p.status]
+                activities.append({
+                    "id": p.id * 10000 + 2,
+                    "type": "status_change",
+                    "title": title,
+                    "description": description,
+                    "timestamp": format_timestamp(p.updated_at),
+                    "icon": "check-circle",
+                    "sort_time": p.updated_at
+                })
+    
+    # Get market listings
+    listings = db.query(MarketListing)\
+        .filter(MarketListing.seller_id == current_user.id)\
+        .order_by(MarketListing.created_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    for listing in listings:
+        project = db.query(Project).filter(Project.id == listing.project_id).first()
+        project_name = project.name if project else f"Project {listing.project_id}"
+        
+        status_config = {
+            ListingStatus.ACTIVE: ("Listing Created", f"Listed {listing.quantity:,} credits for sale", "package"),
+            ListingStatus.SOLD: ("Listing Sold", f"All {listing.quantity:,} credits sold", "check"),
+            ListingStatus.CANCELLED: ("Listing Cancelled", f"Cancelled listing of {listing.quantity:,} credits", "x"),
+            ListingStatus.EXPIRED: ("Listing Expired", f"Listing of {listing.quantity:,} credits expired", "clock"),
+        }
+        
+        title, description, icon = status_config.get(listing.status, ("Market Activity", "Market activity", "shopping-cart"))
+        
+        activities.append({
+            "id": listing.id * 20000,
+            "type": "market_listing",
+            "title": title,
+            "description": f"{description} from '{project_name}'",
+            "timestamp": format_timestamp(listing.created_at),
+            "icon": icon,
+            "sort_time": listing.created_at
+        })
+    
+    # Get offers (both sent and received)
+    from apps.api.core.models import Offer, OfferStatus
+    
+    sent_offers = db.query(Offer)\
+        .filter(Offer.buyer_id == current_user.id)\
+        .order_by(Offer.created_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    for offer in sent_offers:
+        listing = db.query(MarketListing).filter(MarketListing.id == offer.listing_id).first()
+        
+        offer_status_config = {
+            OfferStatus.PENDING: ("Offer Sent", f"Sent offer for {offer.quantity:,} credits at ${offer.price_per_ton_cents/100:.2f}/t"),
+            OfferStatus.ACCEPTED: ("Offer Accepted", f"Your offer for {offer.quantity:,} credits was accepted"),
+            OfferStatus.REJECTED: ("Offer Rejected", f"Your offer for {offer.quantity:,} credits was rejected"),
+            OfferStatus.COUNTER: ("Counter Offer", f"Received counter offer for {offer.quantity:,} credits"),
+            OfferStatus.EXPIRED: ("Offer Expired", f"Your offer for {offer.quantity:,} credits expired"),
+        }
+        
+        title, description = offer_status_config.get(offer.status, ("Offer", f"Offer for {offer.quantity} credits"))
+        
+        activities.append({
+            "id": offer.id * 30000,
+            "type": "offer",
+            "title": title,
+            "description": description,
+            "timestamp": format_timestamp(offer.created_at),
+            "icon": "message-square",
+            "sort_time": offer.updated_at or offer.created_at
+        })
+    
+    # Get retirements
+    retirements = db.query(Retirement)\
+        .filter(Retirement.user_id == current_user.id)\
+        .order_by(Retirement.created_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    for retirement in retirements:
+        status_icon = "leaf" if retirement.status == RetirementStatus.COMPLETED else "clock"
+        status_text = "completed" if retirement.status == RetirementStatus.COMPLETED else "pending"
+        
+        activities.append({
+            "id": retirement.id * 40000,
+            "type": "retirement",
+            "title": "Carbon Credits Retired",
+            "description": f"Retired {retirement.quantity:,} credits ({status_text}) - {retirement.beneficiary_name or 'Self'}",
+            "timestamp": format_timestamp(retirement.created_at),
+            "icon": status_icon,
+            "sort_time": retirement.created_at
+        })
+    
+    # Get credit holdings (new acquisitions)
+    holdings = db.query(CreditHolding)\
+        .filter(CreditHolding.user_id == current_user.id)\
+        .order_by(CreditHolding.acquired_date.desc())\
+        .limit(limit)\
+        .all()
+    
+    for holding in holdings:
+        project = db.query(Project).filter(Project.id == holding.project_id).first()
+        project_name = project.name if project else f"Project {holding.project_id}"
+        
+        activities.append({
+            "id": holding.id * 50000,
+            "type": "credit_acquired",
+            "title": "Credits Acquired",
+            "description": f"Acquired {holding.quantity:,} credits from '{project_name}'",
+            "timestamp": format_timestamp(holding.acquired_date),
+            "icon": "coins",
+            "sort_time": holding.acquired_date
+        })
+    
+    # Sort all activities by time and limit
+    activities.sort(key=lambda x: x.get("sort_time") or datetime.min, reverse=True)
+    activities = activities[:limit]
+    
+    # Convert to response format
+    return [
+        ActivityItem(
+            id=a["id"],
+            type=a["type"],
+            title=a["title"],
+            description=a["description"],
+            timestamp=a["timestamp"],
+            icon=a["icon"]
+        )
+        for a in activities
+    ]
 
 @router.get("/projects/summary", response_model=List[ProjectSummary])
 def get_projects_summary(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -193,19 +387,40 @@ def get_projects_summary(current_user: User = Depends(get_current_user), db: Ses
     
     projects = db.query(Project).filter(Project.developer_id == current_user.id).all()
     
+    def calculate_wizard_progress(project):
+        """Calculate wizard completion percentage from wizard_data"""
+        wd = project.wizard_data or {}
+        
+        steps_completed = 0
+        
+        # Step 1: Basic Info - check if name and country exist
+        if (wd.get('projectName') or project.name) and wd.get('country'):
+            steps_completed += 1
+        
+        # Step 2: Credit Estimation - check for estimation result or methodology
+        if wd.get('estimationResult') or wd.get('selectedMethodology') or wd.get('uploadedFile'):
+            steps_completed += 1
+        
+        # Step 3: Stakeholders - check if stakeholders array has items
+        stakeholders = wd.get('stakeholders', [])
+        if stakeholders and len(stakeholders) > 0:
+            steps_completed += 1
+        
+        # Step 4: Compliance - check if any checklist items are checked
+        compliance = wd.get('compliance', {})
+        env_checklist = compliance.get('environmentalChecklist', []) or wd.get('environmentalChecklist', [])
+        if any(item.get('checked') for item in env_checklist if isinstance(item, dict)):
+            steps_completed += 1
+        
+        # Step 5: Registry Submission - check if any documents are not pending
+        registry_docs = wd.get('registrySubmission', {}).get('documents', []) or wd.get('documents', [])
+        if any(doc.get('status') != 'pending' for doc in registry_docs if isinstance(doc, dict)):
+            steps_completed += 1
+        
+        return int((steps_completed / 5) * 100)
+    
     summaries = []
     for project in projects:
-        progress_map = {
-            ProjectStatus.DRAFT: 10,
-            ProjectStatus.SUBMITTED_TO_VVB: 25,
-            ProjectStatus.VALIDATION_PENDING: 40,
-            ProjectStatus.VALIDATION_APPROVED: 55,
-            ProjectStatus.VERIFICATION_PENDING: 70,
-            ProjectStatus.VERIFICATION_APPROVED: 85,
-            ProjectStatus.REGISTRY_REVIEW: 95,
-            ProjectStatus.ISSUED: 100
-        }
-        
         next_action_map = {
             ProjectStatus.DRAFT: "Complete wizard",
             ProjectStatus.SUBMITTED_TO_VVB: "Awaiting VVB response",
@@ -224,13 +439,16 @@ def get_projects_summary(current_user: User = Depends(get_current_user), db: Ses
         ).all()
         credits_issued = sum(h.quantity for h in holdings) if project.status == ProjectStatus.ISSUED else None
         
+        # Calculate actual wizard progress
+        progress = calculate_wizard_progress(project)
+        
         summaries.append(ProjectSummary(
             id=project.id,
             name=project.name or f"Project {project.id}",
             code=project.code or f"P-{project.id}",
             status=project.status.value if project.status else "DRAFT",
             project_type=project.project_type or "unknown",
-            progress=progress_map.get(project.status, 10),
+            progress=progress,
             credits_issued=credits_issued,
             next_action=next_action_map.get(project.status, "Continue setup")
         ))

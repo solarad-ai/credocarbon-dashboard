@@ -124,3 +124,66 @@ def forgot_password(request: ForgotPasswordRequest):
     # TODO: Implement actual email logic invocation
     return {"message": "If this email is registered, a reset link has been sent."}
 
+
+@router.post("/superadmin/login", response_model=Token)
+def superadmin_login(form_data: UserLogin, service: AuthService = Depends(get_auth_service)):
+    """Super Admin login with role verification"""
+    user = service.authenticate_user(form_data.email, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    
+    access_token = service.create_access_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    refresh_token = service.create_refresh_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token, "user": user}
+
+
+@router.post("/vvb/login", response_model=Token)
+def vvb_login(form_data: UserLogin, service: AuthService = Depends(get_auth_service)):
+    """VVB (Validation & Verification Body) login with role verification"""
+    user = service.authenticate_user(form_data.email, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if user.role != "VVB":
+        raise HTTPException(status_code=403, detail="VVB access required")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    
+    access_token = service.create_access_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    refresh_token = service.create_refresh_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token, "user": user}
+
+
+@router.post("/registry/login", response_model=Token)
+def registry_login(form_data: UserLogin, service: AuthService = Depends(get_auth_service)):
+    """Registry Officer login with role verification"""
+    user = service.authenticate_user(form_data.email, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if user.role != "REGISTRY":
+        raise HTTPException(status_code=403, detail="Registry access required")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    
+    access_token = service.create_access_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    refresh_token = service.create_refresh_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token, "user": user}
+
+
+@router.post("/admin/login", response_model=Token)
+def admin_login(form_data: UserLogin, service: AuthService = Depends(get_auth_service)):
+    """Admin (Platform Administrator) login with role verification"""
+    user = service.authenticate_user(form_data.email, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    
+    access_token = service.create_access_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    refresh_token = service.create_refresh_token(data={"sub": user.email, "role": user.role, "id": user.id})
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token, "user": user}

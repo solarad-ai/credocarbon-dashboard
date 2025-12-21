@@ -8,6 +8,7 @@ class UserRole(str, enum.Enum):
     DEVELOPER = "DEVELOPER"
     BUYER = "BUYER"
     ADMIN = "ADMIN"
+    SUPER_ADMIN = "SUPER_ADMIN"
     VVB = "VVB"
     REGISTRY = "REGISTRY"
 
@@ -257,3 +258,164 @@ class Offer(Base):
 
     listing = relationship("MarketListing", backref="offers")
     buyer = relationship("User", backref="offers_made")
+
+
+class TaskType(str, enum.Enum):
+    FEATURE = "feature"
+    REGISTRY = "registry"
+    METHODOLOGY = "methodology"
+    OTHER = "other"
+
+
+class TaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class TaskPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class AdminTask(Base):
+    """Tasks for managing features, registries, and methodologies"""
+    __tablename__ = "admin_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(Enum(TaskType), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    link = Column(String, nullable=True)  # Reference URL
+    status = Column(Enum(TaskStatus), default=TaskStatus.PENDING)
+    priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
+    documents = Column(JSON, default=[])  # List of document filenames
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = relationship("User", backref="admin_tasks")
+
+
+# ============ Platform Configuration Models (CMS) ============
+
+class Registry(Base):
+    """Carbon credit registries (VCS, Gold Standard, CDM, GCC)"""
+    __tablename__ = "registries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(20), unique=True, nullable=False, index=True)  # VCS, GS, CDM
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    website_url = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    requirements = Column(JSON, default={})  # Documents, fees, etc.
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ProjectTypeConfig(Base):
+    """Project types (Solar, Wind, Biogas, etc.)"""
+    __tablename__ = "project_type_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True, nullable=False, index=True)  # solar, wind
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(50), nullable=True)  # energy, nature, waste
+    icon = Column(String(50), nullable=True)  # Icon identifier
+    applicable_registries = Column(JSON, default=[])  # List of registry codes
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FeatureFlag(Base):
+    """Feature flags for platform features"""
+    __tablename__ = "feature_flags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    is_enabled = Column(Boolean, default=False)
+    target_roles = Column(JSON, default=[])  # Empty = all roles
+    flag_metadata = Column(JSON, default={})  # Renamed from 'metadata' to avoid SQLAlchemy conflict
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Announcement(Base):
+    """Platform announcements and banners"""
+    __tablename__ = "announcements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(20), default="info")  # info, warning, success, error
+    target_roles = Column(JSON, default=[])  # Empty = all roles
+    is_active = Column(Boolean, default=True)
+    is_dismissible = Column(Boolean, default=True)
+    start_date = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True)
+    link_url = Column(String, nullable=True)
+    link_text = Column(String(100), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PlatformFee(Base):
+    """Platform fees and pricing configuration"""
+    __tablename__ = "platform_fees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fee_type = Column(String(50), unique=True, nullable=False)  # transaction, listing, etc.
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    percentage = Column(Integer, default=0)  # In basis points (100 = 1%)
+    flat_amount_cents = Column(Integer, default=0)  # Flat fee in cents
+    min_amount_cents = Column(Integer, default=0)
+    max_amount_cents = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class EmailTemplate(Base):
+    """Email templates for platform notifications"""
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)  # welcome, project_approved
+    name = Column(String(100), nullable=False)
+    subject = Column(String(200), nullable=False)
+    body_html = Column(Text, nullable=False)
+    body_text = Column(Text, nullable=True)
+    variables = Column(JSON, default=[])  # Available template variables
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DocumentTemplate(Base):
+    """Document templates (PDD, ER Report, etc.)"""
+    __tablename__ = "document_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    template_type = Column(String(50), nullable=False)  # PDD, ER_REPORT, etc.
+    registry_id = Column(Integer, ForeignKey("registries.id"), nullable=True)
+    file_url = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    version = Column(String(20), nullable=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    registry = relationship("Registry", backref="templates")

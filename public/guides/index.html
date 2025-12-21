@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CredoCarbon - User Guides</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .logo {
+            font-size: 72px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 18px;
+            color: #94a3b8;
+        }
+
+        .guides-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .guide-card {
+            background: white;
+            border-radius: 20px;
+            padding: 35px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .guide-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .guide-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+        }
+
+        .developer::before {
+            background: linear-gradient(90deg, #059669, #10b981);
+        }
+
+        .buyer::before {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+        }
+
+        .vvb::before {
+            background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+        }
+
+        .registry::before {
+            background: linear-gradient(90deg, #ea580c, #f97316);
+        }
+
+        .admin::before {
+            background: linear-gradient(90deg, #c026d3, #d946ef);
+        }
+
+        .superadmin::before {
+            background: linear-gradient(90deg, #dc2626, #ef4444);
+        }
+
+        .guide-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .developer .guide-icon {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+        .buyer .guide-icon {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+        }
+
+        .vvb .guide-icon {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        }
+
+        .registry .guide-icon {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+        }
+
+        .admin .guide-icon {
+            background: linear-gradient(135deg, #c026d3, #d946ef);
+        }
+
+        .superadmin .guide-icon {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+
+        .guide-card h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+
+        .guide-card p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            transition: opacity 0.3s;
+        }
+
+        .download-btn:hover {
+            opacity: 0.9;
+        }
+
+        .developer .download-btn {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+        .buyer .download-btn {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+        }
+
+        .vvb .download-btn {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        }
+
+        .registry .download-btn {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+        }
+
+        .admin .download-btn {
+            background: linear-gradient(135deg, #c026d3, #d946ef);
+        }
+
+        .superadmin .download-btn {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            color: #64748b;
+        }
+
+        .footer .brand {
+            color: #10b981;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .instructions strong {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🌿</div>
+            <h1>CredoCarbon User Guides</h1>
+            <p>Comprehensive documentation for all platform users</p>
+        </div>
+
+        <div class="instructions">
+            <strong>📥 How to Download as PDF:</strong> Click on a guide, then use <strong>Ctrl+P</strong> (or Cmd+P on
+            Mac) and select "Save as PDF"
+        </div>
+
+        <div class="guides-grid">
+            <a href="developer-guide.html" class="guide-card developer">
+                <div class="guide-icon">🌿</div>
+                <h2>Developer Guide</h2>
+                <p>Complete guide to creating and managing carbon offset projects, from registration to credit issuance.
+                </p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+
+            <a href="buyer-guide.html" class="guide-card buyer">
+                <div class="guide-icon">💎</div>
+                <h2>Buyer Guide</h2>
+                <p>Learn how to browse the marketplace, purchase carbon credits, and retire them for sustainability
+                    claims.</p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+
+            <a href="vvb-guide.html" class="guide-card vvb">
+                <div class="guide-icon">🔍</div>
+                <h2>VVB Guide</h2>
+                <p>Validation & Verification Body operations manual for reviewing and approving carbon projects.</p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+
+            <a href="registry-guide.html" class="guide-card registry">
+                <div class="guide-icon">🏛️</div>
+                <h2>Registry Guide</h2>
+                <p>Registry operations manual for project reviews, credit issuance, and credit management.</p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+
+            <a href="admin-guide.html" class="guide-card admin">
+                <div class="guide-icon">👨‍💼</div>
+                <h2>Admin Guide</h2>
+                <p>Platform administration guide for user management, project oversight, and support.</p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+
+            <a href="superadmin-guide.html" class="guide-card superadmin">
+                <div class="guide-icon">🛡️</div>
+                <h2>SuperAdmin Guide</h2>
+                <p>Complete platform control guide including configuration, analytics, and system management.</p>
+                <span class="download-btn">📄 Open Guide</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p class="brand">CredoCarbon</p>
+            <p>Carbon Credit Management Platform</p>
+            <p style="margin-top: 10px;">© 2024 Credo Carbon. All Rights Reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

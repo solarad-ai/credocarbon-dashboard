@@ -12,7 +12,7 @@ class UploadedFile(Base):
     __tablename__ = "uploaded_files"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     original_filename = Column(String(255), nullable=False)
     mime_type = Column(String(100), nullable=False)
     storage_uri = Column(Text, nullable=False)  # Local path
@@ -59,7 +59,7 @@ class GenerationTimeseries(Base):
     __tablename__ = "generation_timeseries"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     file_id = Column(Integer, ForeignKey("uploaded_files.id"))
     ts_utc = Column(DateTime, nullable=False, index=True)
     energy_mwh = Column(Numeric(12, 6), nullable=False)  # Canonical unit
@@ -79,7 +79,7 @@ class CreditEstimation(Base):
     __tablename__ = "credit_estimations"
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     methodology_id = Column(String(50), nullable=False)
     registry = Column(String(50), nullable=False)
 

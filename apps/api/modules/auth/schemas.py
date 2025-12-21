@@ -8,6 +8,7 @@ class UserRole(str, Enum):
     ADMIN = "ADMIN"
     VVB = "VVB"
     REGISTRY = "REGISTRY"
+    SUPER_ADMIN = "SUPER_ADMIN"
 
 class UserCreate(BaseModel):
     email: EmailStr

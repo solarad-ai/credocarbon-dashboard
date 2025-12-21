@@ -164,7 +164,26 @@ def delete_project(project_id: int, current_user: User = Depends(get_current_use
         
     if current_user.role == "DEVELOPER" and project.developer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this project")
-        
+    
+    # Manually delete related records to avoid FK constraint issues
+    # Import models here to avoid circular imports
+    from apps.api.modules.generation.models import UploadedFile, DatasetMapping, GenerationTimeseries, CreditEstimation
+    
+    # Delete credit estimations
+    db.query(CreditEstimation).filter(CreditEstimation.project_id == project_id).delete()
+    
+    # Delete generation timeseries
+    db.query(GenerationTimeseries).filter(GenerationTimeseries.project_id == project_id).delete()
+    
+    # Delete dataset mappings (via uploaded files)
+    file_ids = [f.id for f in db.query(UploadedFile.id).filter(UploadedFile.project_id == project_id).all()]
+    if file_ids:
+        db.query(DatasetMapping).filter(DatasetMapping.file_id.in_(file_ids)).delete(synchronize_session=False)
+    
+    # Delete uploaded files
+    db.query(UploadedFile).filter(UploadedFile.project_id == project_id).delete()
+    
+    # Finally delete the project
     db.delete(project)
     db.commit()
     return None

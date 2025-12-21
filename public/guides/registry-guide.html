@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CredoCarbon - Registry Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(234, 88, 12, 0.3);
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f97316, #fb923c);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .section h2 {
+            font-size: 24px;
+            color: #ea580c;
+        }
+
+        .step {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #f97316;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: #64748b;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #fed7aa;
+        }
+
+        .feature-card h3 {
+            color: #ea580c;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .checklist {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 0;
+            border-bottom: 1px solid #fed7aa;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #f97316;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f97316;
+        }
+
+        .workflow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .workflow-step {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+
+        .workflow-arrow {
+            color: #f97316;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: linear-gradient(135deg, #ea580c, #f97316);
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .footer .brand {
+            color: #ea580c;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .section {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🏛️</div>
+            <h1>Registry Guide</h1>
+            <p class="subtitle">Carbon Credit Registry Operations Manual</p>
+            <div class="badge">CredoCarbon Platform</div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">📋</div>
+                <h2>Your Role</h2>
+            </div>
+            <p style="font-size: 16px; color: #64748b; margin-bottom: 20px;">
+                As a Registry Officer, you are responsible for the final review and approval of carbon projects,
+                issuance of carbon credits, and maintaining the integrity of the carbon credit registry.
+            </p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📝 Project Review</h3>
+                    <p>Review validated and verified projects to ensure compliance with registry standards before credit
+                        issuance.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎫 Credit Issuance</h3>
+                    <p>Issue carbon credits to projects that pass review, assign serial numbers, and record in the
+                        registry.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">📊</div>
+                <h2>Dashboard Overview</h2>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>⏳ Pending Reviews</h3>
+                    <p>View all projects that have completed VVB validation/verification and are awaiting registry
+                        review.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📦 Issuances</h3>
+                    <p>Manage credit issuance queue and track all pending and completed issuances.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💎 Credits</h3>
+                    <p>View all credit batches issued through the registry, track status and transactions.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>❓ Queries</h3>
+                    <p>Manage clarification requests and communicate with project developers.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">🔍</div>
+                <h2>Review Workflow</h2>
+            </div>
+
+            <div class="workflow">
+                <div class="workflow-step">Receive Project</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Review Documents</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Complete Checklist</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Decision</div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">Issuance</div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Receive Verified Project</h3>
+                    <p>Projects arrive after VVB validation and verification are complete. Review the VVB reports.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Review All Documentation</h3>
+                    <p>Examine project documents, validation report, verification report, and emission reduction
+                        calculations.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Complete Review Checklist</h3>
+                    <p>Work through the registry review checklist ensuring all requirements are met.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Issue Decision</h3>
+                    <p>Approve for issuance, approve with conditions, or reject with detailed explanation.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">📝</div>
+                <h2>Review Checklist</h2>
+            </div>
+            <div class="checklist">
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Methodology approved for registry use
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Validation report complete and acceptable
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Verification report complete and acceptable
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Credit calculation verified correctly
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Additionality confirmed by VVB
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Safeguards verified by VVB
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> All documentation complete
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Registration fees paid
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Registry-specific requirements met
+                </div>
+                <div class="checklist-item">
+                    <div class="checkbox">☐</div> Project ready for credit issuance
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">🎫</div>
+                <h2>Credit Issuance</h2>
+            </div>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Confirm Issuance Details</h3>
+                    <p>Verify the quantity of credits to be issued based on verified emission reductions.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Assign Serial Numbers</h3>
+                    <p>Generate unique serial numbers for each credit following registry conventions.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Issue Credits</h3>
+                    <p>Create the credit batch and assign to the project developer's account.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Generate Certificate</h3>
+                    <p>Create and upload the official registry certificate for the credit issuance.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p class="brand">CredoCarbon</p>
+            <p>Carbon Credit Management Platform</p>
+            <p style="margin-top: 10px;">© 2024 Credo Carbon. All Rights Reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>
