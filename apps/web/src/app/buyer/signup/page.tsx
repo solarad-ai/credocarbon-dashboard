@@ -11,6 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ALL_COUNTRIES } from "@/lib/constants";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app';
+
 const industrySectors = [
     { value: "ENERGY", label: "Energy & Utilities" },
     { value: "FMCG", label: "FMCG / Consumer Goods" },
@@ -72,7 +74,7 @@ export default function BuyerSignupPage() {
         }
 
         try {
-            const response = await fetch("http://localhost:8000/api/auth/signup", {
+            const response = await fetch(`${API_URL}/api/auth/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

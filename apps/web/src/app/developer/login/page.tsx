@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app';
+
 export default function DeveloperLoginPage() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +28,7 @@ export default function DeveloperLoginPage() {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:8000/api/auth/login", {
+            const response = await fetch(`${API_URL}/api/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

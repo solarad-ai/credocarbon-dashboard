@@ -3,7 +3,7 @@
  * Centralized API service for frontend-backend communication
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app/api';
 
 // Helper to get auth token
 const getAuthToken = (): string | null => {
