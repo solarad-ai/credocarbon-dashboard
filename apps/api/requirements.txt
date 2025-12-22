@@ -2,36 +2,35 @@
 # Python 3.11+
 
 # Web Framework
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
+fastapi==0.104.1
+uvicorn==0.24.0
 
 # Database
-sqlalchemy==2.0.25
+sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
 alembic==1.13.1
 
-# Authentication & Security
+# Authentication & Security (using versions with pre-built wheels)
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.1.2
+passlib==1.7.4
+bcrypt==4.0.1
 
-# Utilities
-python-dotenv==1.0.1
-pydantic==2.5.3
-pydantic-settings==2.1.0
+# Utilities (using pydantic v1 to avoid Rust compilation)
+python-dotenv==1.0.0
+pydantic==1.10.13
 python-multipart==0.0.6
 
 # File handling
 aiofiles==23.2.1
 
 # HTTP Client
-httpx==0.26.0
+httpx==0.25.2
 
 # Date handling
 python-dateutil==2.8.2
 
-# PDF generation (lightweight)
-reportlab==4.0.8
+# PDF generation
+reportlab==4.0.7
 
 # Excel generation
 openpyxl==3.1.2
