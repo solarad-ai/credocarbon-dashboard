@@ -64,6 +64,7 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
             --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+            --set-env-vars "CORS_ORIGINS=https://credocarbon-web-641001192587.asia-south2.run.app,http://localhost:3000" \
             --port 8080
 
   # Build and deploy Web
@@ -95,8 +96,9 @@ jobs:
       - name: Get API URL
         id: api-url
         run: |
-          API_URL=$(gcloud run services describe credocarbon-api --project ${{ env.DEPLOY_PROJECT_ID }} --region ${{ env.REGION }} --format 'value(status.url)')
+          API_URL=$(gcloud run services describe credocarbon-api --project ${{ env.DEPLOY_PROJECT_ID }} --region ${{ env.REGION }} --format 'value(status.url)' || echo "${{ secrets.NEXT_PUBLIC_API_URL }}")
           echo "API_URL=${API_URL}" >> $GITHUB_ENV
+          echo "Using API URL: ${API_URL}"
 
       # Back to CI/CD for Docker
       - name: Auth for CI/CD
