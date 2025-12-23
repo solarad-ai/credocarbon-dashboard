@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, User, Building2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -17,6 +17,7 @@ export function HeroSection() {
     const [currentPhrase, setCurrentPhrase] = useState(0);
     const [displayText, setDisplayText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showRoleModal, setShowRoleModal] = useState(false);
 
     useEffect(() => {
         const phrase = typingPhrases[currentPhrase];
@@ -104,20 +105,19 @@ export function HeroSection() {
                         className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up"
                         style={{ animationDelay: "0.3s" }}
                     >
-                        <Link href="/developer/signup">
-                            <Button
-                                size="lg"
-                                className="bg-gradient-to-r from-emerald-500 to-blue-600 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-105 transition-all"
-                            >
-                                Get Started
-                                <ArrowRight className="ml-2 h-5 w-5" />
-                            </Button>
-                        </Link>
+                        <Button
+                            size="lg"
+                            onClick={() => setShowRoleModal(true)}
+                            className="bg-gradient-to-r from-emerald-500 to-blue-600 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-105 transition-all cursor-pointer"
+                        >
+                            Get Started
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
                         <Link href="#docs">
                             <Button
                                 size="lg"
                                 variant="outline"
-                                className="px-8 py-6 text-lg font-semibold rounded-xl border-2 border-white/20 text-white bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all"
+                                className="px-8 py-6 text-lg font-semibold rounded-xl border-2 border-white/20 text-white bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all cursor-pointer"
                             >
                                 View Documentation
                             </Button>
@@ -169,6 +169,60 @@ export function HeroSection() {
 
             {/* Bottom gradient fade */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0a0f] to-transparent pointer-events-none" />
+
+            {/* Role Selection Modal */}
+            {showRoleModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="relative bg-[#0f0f15] border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-scale-in">
+                        <button
+                            onClick={() => setShowRoleModal(false)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+
+                        <h2 className="text-2xl font-bold text-white mb-2 text-center">
+                            How would you like to join?
+                        </h2>
+                        <p className="text-slate-400 text-center mb-8">
+                            Select your role to get started
+                        </p>
+
+                        <div className="grid gap-4">
+                            <Link href="/developer/signup" onClick={() => setShowRoleModal(false)}>
+                                <div className="group p-6 rounded-xl border-2 border-white/10 hover:border-emerald-500/50 bg-white/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                                            <Building2 className="h-6 w-6 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white">I'm a Developer</h3>
+                                            <p className="text-sm text-slate-400">Register carbon credit projects</p>
+                                        </div>
+                                        <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-emerald-400 ml-auto transition-colors" />
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <Link href="/buyer/signup" onClick={() => setShowRoleModal(false)}>
+                                <div className="group p-6 rounded-xl border-2 border-white/10 hover:border-blue-500/50 bg-white/5 hover:bg-blue-500/10 transition-all cursor-pointer">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                                            <User className="h-6 w-6 text-blue-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white">I'm a Buyer</h3>
+                                            <p className="text-sm text-slate-400">Purchase carbon credits</p>
+                                        </div>
+                                        <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-blue-400 ml-auto transition-colors" />
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }
+

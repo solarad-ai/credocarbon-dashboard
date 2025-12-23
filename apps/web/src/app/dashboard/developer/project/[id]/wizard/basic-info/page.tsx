@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ALL_COUNTRIES } from "@/lib/constants";
+import { ALL_COUNTRIES, COUNTRY_STATES, REGISTRATION_TYPES, SOLAR_MODULE_TYPES } from "@/lib/constants";
 import { projectApi } from "@/lib/api";
 
 const wizardSteps = [
@@ -93,6 +93,7 @@ export default function BasicInfoWizardPage() {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | "unsaved">("saved");
     const [projectId, setProjectId] = useState<number | null>(null);
+    const [availableStates, setAvailableStates] = useState<string[]>([]);
 
     // Document types for file upload
     const documentTypes = [
@@ -138,6 +139,7 @@ export default function BasicInfoWizardPage() {
 
         // Block D - Ownership
         legalEntityName: "",
+        registrationType: "",
         registrationNumber: "",
         ownerType: "",
         signatoryName: "",
@@ -267,6 +269,19 @@ export default function BasicInfoWizardPage() {
 
         return () => clearTimeout(timeoutId);
     }, [formData, saveDraftToStorage]);
+
+    // Auto-load states when country changes
+    useEffect(() => {
+        if (formData.country && COUNTRY_STATES[formData.country]) {
+            setAvailableStates(COUNTRY_STATES[formData.country]);
+            // Clear state if it doesn't exist in new country's states
+            if (formData.stateProvince && !COUNTRY_STATES[formData.country].includes(formData.stateProvince)) {
+                setFormData(prev => ({ ...prev, stateProvince: "" }));
+            }
+        } else {
+            setAvailableStates([]);
+        }
+    }, [formData.country]);
 
     // Handle file upload
     const handleFileUpload = (docId: string, file: File) => {
@@ -466,13 +481,31 @@ export default function BasicInfoWizardPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="stateProvince">State / Province *</Label>
-                                    <Input
-                                        id="stateProvince"
-                                        placeholder="e.g., Rajasthan"
-                                        value={formData.stateProvince}
-                                        onChange={(e) => setFormData({ ...formData, stateProvince: e.target.value })}
-                                        className="h-11"
-                                    />
+                                    {availableStates.length > 0 ? (
+                                        <Select
+                                            value={formData.stateProvince}
+                                            onValueChange={(value) => setFormData({ ...formData, stateProvince: value })}
+                                        >
+                                            <SelectTrigger className="h-11">
+                                                <SelectValue placeholder="Select state/province" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableStates.map((state) => (
+                                                    <SelectItem key={state} value={state}>
+                                                        {state}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input
+                                            id="stateProvince"
+                                            placeholder="Enter state/province"
+                                            value={formData.stateProvince}
+                                            onChange={(e) => setFormData({ ...formData, stateProvince: e.target.value })}
+                                            className="h-11"
+                                        />
+                                    )}
                                 </div>
                             </div>
 
@@ -525,6 +558,26 @@ export default function BasicInfoWizardPage() {
                                     />
                                 </div>
                             </div>
+
+                            {/* Map Preview */}
+                            {formData.latitude && formData.longitude && (
+                                <div className="p-4 rounded-lg border bg-muted/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <MapPin className="h-4 w-4 text-primary" />
+                                        <span className="font-medium text-sm">Location Preview</span>
+                                    </div>
+                                    <div className="aspect-video bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden">
+                                        <iframe
+                                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(formData.longitude) - 0.02}%2C${parseFloat(formData.latitude) - 0.02}%2C${parseFloat(formData.longitude) + 0.02}%2C${parseFloat(formData.latitude) + 0.02}&layer=mapnik&marker=${formData.latitude}%2C${formData.longitude}`}
+                                            className="w-full h-full border-0"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        📍 {formData.latitude}, {formData.longitude}
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="p-4 rounded-lg border-2 border-dashed bg-muted/30">
                                 <div className="text-center">
@@ -587,10 +640,11 @@ export default function BasicInfoWizardPage() {
                                                 <SelectValue placeholder="Select module type" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="MONO_SI">Mono-crystalline Silicon</SelectItem>
-                                                <SelectItem value="POLY_SI">Poly-crystalline Silicon</SelectItem>
-                                                <SelectItem value="THIN_FILM">Thin Film</SelectItem>
-                                                <SelectItem value="BIFACIAL">Bifacial</SelectItem>
+                                                {SOLAR_MODULE_TYPES.map((type) => (
+                                                    <SelectItem key={type.value} value={type.value}>
+                                                        {type.label}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -640,25 +694,44 @@ export default function BasicInfoWizardPage() {
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="legalEntity">Legal Entity Name *</Label>
+                                    <Label htmlFor="legalEntity">Legal Entity Name</Label>
                                     <Input
                                         id="legalEntity"
-                                        placeholder="e.g., Acme Solar Pvt Ltd"
+                                        placeholder=""
                                         value={formData.legalEntityName}
                                         onChange={(e) => setFormData({ ...formData, legalEntityName: e.target.value })}
                                         className="h-11"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="regNumber">Company Registration Number *</Label>
-                                    <Input
-                                        id="regNumber"
-                                        placeholder="e.g., CIN/Registration No."
-                                        value={formData.registrationNumber}
-                                        onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                                        className="h-11"
-                                    />
+                                    <Label htmlFor="regType">Registration Type</Label>
+                                    <Select
+                                        value={formData.registrationType}
+                                        onValueChange={(value) => setFormData({ ...formData, registrationType: value })}
+                                    >
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue placeholder="Select type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {REGISTRATION_TYPES.map((type) => (
+                                                <SelectItem key={type.value} value={type.value}>
+                                                    {type.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="regNumber">Registration Number</Label>
+                                <Input
+                                    id="regNumber"
+                                    placeholder=""
+                                    value={formData.registrationNumber}
+                                    onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                                    className="h-11"
+                                />
                             </div>
 
                             <div className="space-y-2">

@@ -8,11 +8,18 @@ class Container:
         self.storage_backend = os.getenv("STORAGE_BACKEND", "local")
         self.event_backend = os.getenv("EVENT_BACKEND", "local")
 
-        # Initialize Ports
-        self.file_storage: FileStoragePort = LocalFileStorageAdapter()
+        # Initialize File Storage based on backend
+        if self.storage_backend == "gcs":
+            from apps.api.infra.gcs.adapters import GCSFileStorageAdapter
+            self.file_storage: FileStoragePort = GCSFileStorageAdapter()
+        else:
+            self.file_storage: FileStoragePort = LocalFileStorageAdapter()
+        
+        # Other adapters (local for now)
         self.event_bus: EventBusPort = LocalEventBusAdapter()
         self.task_queue: TaskQueuePort = LocalTaskQueueAdapter()
         self.email_service: EmailPort = LocalEmailAdapter()
         self.malware_scanner: MalwareScannerPort = LocalMalwareScannerAdapter()
 
 container = Container()
+

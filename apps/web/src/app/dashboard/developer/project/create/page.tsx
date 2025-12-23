@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app';
+
 const projectTypes = [
     {
         id: "solar",
@@ -126,7 +128,7 @@ export default function CreateProjectPage() {
 
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:8000/api/projects", {
+            const response = await fetch(`${API_URL}/api/projects`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -181,7 +183,7 @@ export default function CreateProjectPage() {
             </div>
 
             {/* Project Type Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 
                 {projectTypes.map((type) => {
                     const Icon = type.icon;
@@ -199,35 +201,35 @@ export default function CreateProjectPage() {
                             )}
                             onClick={() => setSelectedType(type.id)}
                         >
-                            <CardContent className="p-6">
-                                <div className="flex items-start gap-4">
+                            <CardContent className="p-4">
+                                <div className="flex flex-col items-center text-center gap-2">
                                     <div className={cn(
-                                        "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
+                                        "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
                                         type.bgColor
                                     )}>
-                                        <Icon className={cn("h-6 w-6", type.color)} />
+                                        <Icon className={cn("h-5 w-5", type.color)} />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-semibold">{type.name}</h3>
+                                    <div>
+                                        <div className="flex items-center justify-center gap-1 mb-1">
+                                            <h3 className="font-medium text-sm">{type.name}</h3>
                                             {isSelected && (
-                                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                                    <Check className="h-3 w-3 text-primary-foreground" />
+                                                <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                                                    <Check className="h-2.5 w-2.5 text-primary-foreground" />
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                                            {type.description}
-                                        </p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {type.registries.map((reg) => (
+                                        <div className="flex flex-wrap justify-center gap-1">
+                                            {type.registries.slice(0, 2).map((reg) => (
                                                 <span
                                                     key={reg}
-                                                    className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground"
+                                                    className="px-1.5 py-0.5 text-[10px] rounded-full bg-muted text-muted-foreground"
                                                 >
                                                     {reg}
                                                 </span>
                                             ))}
+                                            {type.registries.length > 2 && (
+                                                <span className="text-[10px] text-muted-foreground">+{type.registries.length - 2}</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

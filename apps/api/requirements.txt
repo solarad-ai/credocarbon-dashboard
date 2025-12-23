@@ -40,3 +40,6 @@ openpyxl==3.1.2
 # Document generation
 python-docx==1.1.0
 
+# Google Cloud Storage
+google-cloud-storage==2.14.0
+

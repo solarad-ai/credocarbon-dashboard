@@ -339,6 +339,31 @@
     0 0 0 1px rgba(16, 185, 129, 0.1);
 }
 
+/* Enhanced card hover with stronger highlight */
+.card-hover-highlight {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.card-hover-highlight:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.08),
+    0 0 0 2px rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* Interactive elements - cursor pointer */
+.interactive {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.interactive:hover {
+  opacity: 0.85;
+}
+
 /* Button shine effect */
 .btn-shine {
   position: relative;
