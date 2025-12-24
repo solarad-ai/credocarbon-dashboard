@@ -194,7 +194,22 @@ export default function ValidationDetailPage() {
                 </Badge>
             </div>
 
-            {/* Project Info */}
+            {/* Validation vs Verification Info */}
+            <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+                <CardContent className="pt-4">
+                    <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-amber-600 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-amber-800 dark:text-amber-300">What is Validation?</p>
+                            <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                                <strong>Validation</strong> is the initial assessment conducted <strong>BEFORE</strong> project implementation.
+                                It confirms that the project design, baseline, and monitoring plan meet the registry's requirements.
+                                Validation typically occurs once at the start of the project lifecycle.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
             <Card className="border-slate-200 dark:border-slate-700">
                 <CardHeader>
                     <CardTitle className="text-lg">Project Information</CardTitle>

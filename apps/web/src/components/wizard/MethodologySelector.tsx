@@ -73,6 +73,17 @@ export function MethodologySelector({
                 <CardTitle className="text-lg">Select Carbon Credit Methodology</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+                {/* Methodology Explanation */}
+                <Alert className="border-blue-200 bg-blue-50">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
+                        <strong>What is a Carbon Credit Methodology?</strong><br />
+                        A methodology defines the rules and procedures used to calculate carbon credits for your project.
+                        It specifies how to calculate baseline emissions, project emissions, and the resulting emission reductions.
+                        Different registries (CDM, Verra, Gold Standard) have approved methodologies for different project types.
+                    </AlertDescription>
+                </Alert>
+
                 {/* Registry Filter */}
                 <div className="space-y-2">
                     <Label>Registry (Optional Filter)</Label>

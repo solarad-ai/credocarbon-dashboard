@@ -200,7 +200,22 @@ export default function VerificationDetailPage() {
                 </Badge>
             </div>
 
-            {/* Project Info & Emission Reductions */}
+            {/* Validation vs Verification Info */}
+            <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+                <CardContent className="pt-4">
+                    <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div>
+                            <p className="font-medium text-blue-800 dark:text-blue-300">What is Verification?</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                                <strong>Verification</strong> is a periodic assessment conducted <strong>AFTER</strong> project operation begins.
+                                It confirms that the actual emission reductions claimed match the monitoring data and methodology requirements.
+                                Verification occurs annually or at defined monitoring periods throughout the crediting period.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-slate-200 dark:border-slate-700">
                     <CardHeader>

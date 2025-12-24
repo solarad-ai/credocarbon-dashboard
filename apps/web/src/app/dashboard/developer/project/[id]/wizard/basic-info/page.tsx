@@ -229,7 +229,8 @@ export default function BasicInfoWizardPage() {
     // Save draft to database (project already created on mount)
     const saveDraftToStorage = useCallback(async () => {
         if (!projectId) {
-            // Project not created yet, skip save
+            // Project not created yet, skip save but reset status
+            setDraftStatus("saved");
             return;
         }
 
@@ -261,11 +262,11 @@ export default function BasicInfoWizardPage() {
 
     // Debounced auto-save
     useEffect(() => {
-        setDraftStatus("unsaved");
+        // Don't trigger save on initial mount
         const timeoutId = setTimeout(() => {
             setDraftStatus("saving");
             saveDraftToStorage();
-        }, 1000); // Save after 1 second of no changes
+        }, 1500); // Increased to 1.5 seconds for better debouncing
 
         return () => clearTimeout(timeoutId);
     }, [formData, saveDraftToStorage]);
@@ -586,9 +587,38 @@ export default function BasicInfoWizardPage() {
                                     <p className="text-sm text-muted-foreground mb-2">
                                         Required for A/R, REDD+, and large-scale projects
                                     </p>
-                                    <Button variant="outline" size="sm">
-                                        Choose File
-                                    </Button>
+                                    <input
+                                        type="file"
+                                        ref={(el) => { fileInputRefs.current['projectBoundary'] = el; }}
+                                        className="hidden"
+                                        accept=".kml,.geojson,.json"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleFileUpload('projectBoundary', file);
+                                        }}
+                                    />
+                                    {uploadedDocs['projectBoundary'] ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Check className="h-4 w-4 text-green-600" />
+                                            <span className="text-sm text-green-600">{uploadedDocs['projectBoundary'].name}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-destructive hover:text-destructive"
+                                                onClick={() => handleFileRemove('projectBoundary')}
+                                            >
+                                                ✕
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm"
+                                            onClick={() => fileInputRefs.current['projectBoundary']?.click()}
+                                        >
+                                            Choose File
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -855,15 +885,16 @@ export default function BasicInfoWizardPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="ppaDuration">PPA Duration (years)</Label>
+                                <Label htmlFor="ppaDuration">PPA Duration (months)</Label>
                                 <Input
                                     id="ppaDuration"
                                     type="number"
-                                    placeholder="e.g., 25"
+                                    placeholder="e.g., 300"
                                     value={formData.ppaDuration}
                                     onChange={(e) => setFormData({ ...formData, ppaDuration: e.target.value })}
                                     className="h-11 w-full md:w-1/3"
                                 />
+                                <p className="text-xs text-muted-foreground">Enter duration in months (e.g., 300 months = 25 years)</p>
                             </div>
                         </div>
                     </CollapsibleBlock>
