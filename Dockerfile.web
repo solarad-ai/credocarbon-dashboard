@@ -27,7 +27,8 @@ COPY apps/web/ ./
 
 # Build arguments for environment variables (baked into build)
 # Default to production HTTPS URL - can be overridden but MUST use HTTPS
-ARG NEXT_PUBLIC_API_URL=https://credocarbon-api-641001192587.asia-south2.run.app
+# IMPORTANT: Include /api suffix as api.ts expects it in the URL
+ARG NEXT_PUBLIC_API_URL=https://credocarbon-api-641001192587.asia-south2.run.app/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build the application
