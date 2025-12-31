@@ -75,7 +75,10 @@ export default function VVBDashboardLayout({
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
-        router.replace("/vvb/login");
+        localStorage.removeItem("token");
+
+        // Use window.location.replace to prevent back button navigation
+        window.location.replace("/vvb/login");
     };
 
     if (!mounted || !user) {

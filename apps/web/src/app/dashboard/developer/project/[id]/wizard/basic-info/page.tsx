@@ -90,6 +90,7 @@ export default function BasicInfoWizardPage() {
     const isReadOnly = searchParams.get("mode") === "view";
 
     const [isSaving, setIsSaving] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | "unsaved">("saved");
     const [projectId, setProjectId] = useState<number | null>(null);
@@ -228,8 +229,13 @@ export default function BasicInfoWizardPage() {
 
     // Save draft to database (project already created on mount)
     const saveDraftToStorage = useCallback(async () => {
-        if (!projectId) {
-            // Project not created yet, skip save but reset status
+        // Get project ID from state or URL params
+        const currentProjectId = projectId || (params.id && params.id !== 'new' ? parseInt(params.id as string) : null);
+
+        console.log('saveDraftToStorage called:', { projectId, paramsId: params.id, currentProjectId });
+
+        if (!currentProjectId || isNaN(currentProjectId)) {
+            console.warn('No valid project ID available for saving');
             setDraftStatus("saved");
             return;
         }
@@ -249,27 +255,49 @@ export default function BasicInfoWizardPage() {
                 },
             };
 
-            // Update the existing project
-            await projectApi.update(projectId, apiData);
+            console.log('Saving project:', currentProjectId, apiData);
 
+            // Update the existing project
+            await projectApi.update(currentProjectId, apiData);
+
+            console.log('Project saved successfully');
             setLastSaved(new Date());
             setDraftStatus("saved");
+
+            // Update projectId state if it wasn't set
+            if (!projectId && currentProjectId) {
+                setProjectId(currentProjectId);
+            }
         } catch (error) {
             console.error("Error saving draft:", error);
             setDraftStatus("saved"); // Don't block user even if save fails
+            throw error; // Re-throw so handleNext can catch it
         }
-    }, [formData, uploadedDocs, projectType, projectId]);
+    }, [formData, uploadedDocs, projectType, projectId, params.id]);
+
+    // Track if this is the initial mount
+    const isInitialMount = useRef(true);
 
     // Debounced auto-save
     useEffect(() => {
-        // Don't trigger save on initial mount
+        // Skip auto-save on initial mount
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        // Don't save if no projectId yet
+        if (!projectId) {
+            return;
+        }
+
+        setDraftStatus("saving");
         const timeoutId = setTimeout(() => {
-            setDraftStatus("saving");
             saveDraftToStorage();
-        }, 1500); // Increased to 1.5 seconds for better debouncing
+        }, 1500); // 1.5 seconds debounce
 
         return () => clearTimeout(timeoutId);
-    }, [formData, saveDraftToStorage]);
+    }, [formData, uploadedDocs, projectId]); // Removed saveDraftToStorage from dependencies
 
     // Auto-load states when country changes
     useEffect(() => {
@@ -314,13 +342,32 @@ export default function BasicInfoWizardPage() {
         setIsSaving(false);
     };
 
-    const handleNext = () => {
-        saveDraftToStorage(); // Save before navigating
-        // Use the actual project ID if available, otherwise show error
-        if (projectId) {
-            router.push(`/dashboard/developer/project/${projectId}/wizard/credit-estimation?type=${projectType}`);
-        } else {
-            alert('Please save the project first before proceeding.');
+    const handleNext = async () => {
+        setIsNavigating(true);
+
+        try {
+            console.log('handleNext called, saving draft...');
+            // Save before navigating
+            await saveDraftToStorage();
+
+            // Get project ID from state or URL params
+            const currentProjectId = projectId || (params.id && params.id !== 'new' ? parseInt(params.id as string) : null);
+
+            console.log('After save, projectId:', { projectId, paramsId: params.id, currentProjectId });
+
+            // Check if project ID is available after save
+            if (currentProjectId && !isNaN(currentProjectId)) {
+                console.log('Navigating to next step...');
+                router.push(`/dashboard/developer/project/${currentProjectId}/wizard/credit-estimation?type=${projectType}`);
+            } else {
+                console.error('No valid project ID after save');
+                alert('Unable to save project. Please try again or check your connection.');
+                setIsNavigating(false);
+            }
+        } catch (error) {
+            console.error('Error in handleNext:', error);
+            alert('Failed to save project. Please try again.');
+            setIsNavigating(false);
         }
     };
 
@@ -611,8 +658,8 @@ export default function BasicInfoWizardPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <Button 
-                                            variant="outline" 
+                                        <Button
+                                            variant="outline"
                                             size="sm"
                                             onClick={() => fileInputRefs.current['projectBoundary']?.click()}
                                         >
@@ -889,6 +936,7 @@ export default function BasicInfoWizardPage() {
                                 <Input
                                     id="ppaDuration"
                                     type="number"
+                                    min="0"
                                     placeholder="e.g., 300"
                                     value={formData.ppaDuration}
                                     onChange={(e) => setFormData({ ...formData, ppaDuration: e.target.value })}
@@ -977,7 +1025,7 @@ export default function BasicInfoWizardPage() {
             </main>
 
             {/* Sticky Footer */}
-            <footer className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50">
+            <footer className="fixed bottom-0 left-0 right-0 lg:left-72 bg-card border-t shadow-lg z-50">
                 <div className="container mx-auto px-4">
                     <div className="h-16 flex items-center justify-between">
                         {/* Left: Back button */}
@@ -1021,9 +1069,22 @@ export default function BasicInfoWizardPage() {
                         </div>
 
                         {/* Right: Primary action */}
-                        <Button onClick={handleNext} className="gradient-primary text-white btn-shine">
-                            Next: Generation Data
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                        <Button
+                            onClick={handleNext}
+                            disabled={isNavigating}
+                            className="gradient-primary text-white btn-shine"
+                        >
+                            {isNavigating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    Next: Generation Data
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>

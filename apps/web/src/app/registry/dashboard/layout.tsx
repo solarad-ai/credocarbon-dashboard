@@ -76,7 +76,10 @@ export default function RegistryDashboardLayout({
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
-        router.replace("/registry/login");
+        localStorage.removeItem("token");
+
+        // Use window.location.replace to prevent back button navigation
+        window.location.replace("/registry/login");
     };
 
     if (!mounted || !user) {

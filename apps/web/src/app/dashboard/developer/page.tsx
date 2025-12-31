@@ -236,27 +236,27 @@ export default function DeveloperDashboardPage() {
                             <CardTitle>Quick Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <Link href="/dashboard/developer/project/create" className="block">
-                                <Button className="w-full justify-start" variant="outline">
-                                    <PlusCircle className="mr-2 h-4 w-4" />
+                            <Link href="/dashboard/developer/project/create" className="block group">
+                                <Button className="w-full justify-start transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-emerald-500" variant="outline">
+                                    <PlusCircle className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-90" />
                                     Create New Project
                                 </Button>
                             </Link>
-                            <Link href="/dashboard/developer/market/sell-orders" className="block">
-                                <Button className="w-full justify-start" variant="outline">
-                                    <Package className="mr-2 h-4 w-4" />
+                            <Link href="/dashboard/developer/market/sell-orders" className="block group">
+                                <Button className="w-full justify-start transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-blue-500" variant="outline">
+                                    <Package className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                                     List Credits for Sale
                                 </Button>
                             </Link>
-                            <Link href="/dashboard/developer/lifecycle/verification" className="block">
-                                <Button className="w-full justify-start" variant="outline">
-                                    <FileText className="mr-2 h-4 w-4" />
+                            <Link href="/dashboard/developer/lifecycle/verification" className="block group">
+                                <Button className="w-full justify-start transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-purple-500" variant="outline">
+                                    <FileText className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                                     Submit Monitoring Report
                                 </Button>
                             </Link>
-                            <Link href="/dashboard/developer/notifications" className="block">
-                                <Button className="w-full justify-start" variant="outline">
-                                    <Bell className="mr-2 h-4 w-4" />
+                            <Link href="/dashboard/developer/notifications" className="block group">
+                                <Button className="w-full justify-start transition-all duration-300 hover:scale-105 hover:shadow-lg hover:border-orange-500" variant="outline">
+                                    <Bell className="mr-2 h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
                                     View Notifications
                                 </Button>
                             </Link>

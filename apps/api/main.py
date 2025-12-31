@@ -30,7 +30,12 @@ from apps.api.core.database import Base, engine
 app = FastAPI(title="CredoCarbon API", version="0.1.0")
 
 # CORS configuration from environment variable
-default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+default_origins = (
+    "http://localhost:3000,"
+    "http://127.0.0.1:3000,"
+    "http://localhost:3001,"
+    "http://127.0.0.1:3001"
+)
 origins = os.getenv("CORS_ORIGINS", default_origins).split(",")
 
 app.add_middleware(

@@ -66,6 +66,14 @@ export default function BuyerDashboardPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Authentication guard - check if user is logged in
+        const token = localStorage.getItem("token");
+        if (!token) {
+            // No token, redirect to buyer login
+            window.location.replace("/buyer/login");
+            return;
+        }
+
         const userData = localStorage.getItem("user");
         if (userData) {
             setUser(JSON.parse(userData));
@@ -84,9 +92,25 @@ export default function BuyerDashboardPage() {
             setListings(listingsData);
         } catch (err) {
             console.error("Error fetching dashboard data:", err);
+            // If API call fails due to auth, logout
+            const error = err as any;
+            if (error?.status === 401 || error?.message?.includes('Unauthorized')) {
+                handleLogout();
+            }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleLogout = () => {
+        // Clear all authentication data
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("access_token");
+
+        // Use replace to prevent back button navigation
+        window.location.replace("/buyer/login");
     };
 
     const filteredListings = listings.filter(listing => {
@@ -204,11 +228,7 @@ export default function BuyerDashboardPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     className="cursor-pointer text-destructive"
-                                    onClick={() => {
-                                        localStorage.removeItem("token");
-                                        localStorage.removeItem("user");
-                                        window.location.href = "/buyer/login";
-                                    }}
+                                    onClick={handleLogout}
                                 >
                                     <LogOut className="mr-2 h-4 w-4" />
                                     Logout

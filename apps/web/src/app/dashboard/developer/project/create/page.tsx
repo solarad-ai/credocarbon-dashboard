@@ -199,7 +199,39 @@ export default function CreateProjectPage() {
                                     : "border-transparent hover:border-border",
                                 type.hoverBorder
                             )}
-                            onClick={() => setSelectedType(type.id)}
+                            onClick={async () => {
+                                setSelectedType(type.id);
+
+                                // Directly create project and navigate
+                                setIsCreating(true);
+                                try {
+                                    const token = localStorage.getItem("token");
+                                    const response = await fetch(`${API_URL}/api/projects`, {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            "Authorization": `Bearer ${token}`,
+                                        },
+                                        body: JSON.stringify({
+                                            name: `New ${type.name} Project`,
+                                            project_type: type.id.toUpperCase(),
+                                            status: "DRAFT",
+                                        }),
+                                    });
+
+                                    if (response.ok) {
+                                        const data = await response.json();
+                                        router.push(`/dashboard/developer/project/${data.id}/wizard/basic-info`);
+                                    } else {
+                                        router.push(`/dashboard/developer/project/new/wizard/basic-info?type=${type.id}`);
+                                    }
+                                } catch (error) {
+                                    console.error("Error creating project:", error);
+                                    router.push(`/dashboard/developer/project/new/wizard/basic-info?type=${type.id}`);
+                                } finally {
+                                    setIsCreating(false);
+                                }
+                            }}
                         >
                             <CardContent className="p-4">
                                 <div className="flex flex-col items-center text-center gap-2">

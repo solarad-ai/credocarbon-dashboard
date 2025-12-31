@@ -14,7 +14,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto",bcrypt__rounds=12)
 
 class AuthService:
     def __init__(self, db: Session, email_service: EmailPort, event_bus: EventBusPort):
@@ -26,6 +26,7 @@ class AuthService:
         return pwd_context.verify(plain_password, hashed_password)
 
     def get_password_hash(self, password):
+        password = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
         return pwd_context.hash(password)
 
     def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None):

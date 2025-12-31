@@ -118,7 +118,10 @@ export const authApi = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = '/';
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('access_token');
+        // Use replace to prevent back button navigation
+        window.location.replace('/');
     },
 
     getCurrentUser: () => {
@@ -205,7 +208,7 @@ export interface Notification {
 
 export const notificationApi = {
     getAll: async (): Promise<Notification[]> => {
-        return apiRequest<Notification[]>('/notifications/');
+        return apiRequest<Notification[]>('/api/notifications/');
     },
 
     markAsRead: async (id: number): Promise<void> => {
@@ -215,7 +218,7 @@ export const notificationApi = {
     },
 
     markAllAsRead: async (): Promise<void> => {
-        return apiRequest<void>('/notifications/read-all', {
+        return apiRequest<void>('/api/notifications/read-all', {
             method: 'PUT',
         });
     },
@@ -265,7 +268,7 @@ export default {
 
 export const walletApi = {
     getSummary: async (): Promise<any> => {
-        return apiRequest<any>('/wallet/summary');
+        return apiRequest<any>('/api/wallet/summary');
     },
 
     getTransactions: async (limit: number = 20): Promise<any[]> => {
@@ -273,7 +276,7 @@ export const walletApi = {
     },
 
     getStats: async (): Promise<any> => {
-        return apiRequest<any>('/wallet/stats');
+        return apiRequest<any>('/api/wallet/stats');
     },
 };
 
@@ -310,7 +313,7 @@ export const retirementApi = {
     },
 
     getSummary: async (): Promise<any> => {
-        return apiRequest<any>('/retirements/summary');
+        return apiRequest<any>('/api/retirements/summary');
     },
 
     getById: async (id: number): Promise<any> => {
@@ -324,7 +327,7 @@ export const retirementApi = {
         beneficiary_address: string;
         purpose: string;
     }): Promise<any> => {
-        return apiRequest<any>('/retirements/', {
+        return apiRequest<any>('/api/retirements/', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -363,7 +366,7 @@ export const marketplaceApi = {
         price_per_ton: number;
         min_quantity?: number;
     }): Promise<any> => {
-        return apiRequest<any>('/marketplace/listings', {
+        return apiRequest<any>('/api/marketplace/listings', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -380,7 +383,7 @@ export const marketplaceApi = {
         price_per_ton: number;
         message?: string;
     }): Promise<any> => {
-        return apiRequest<any>('/marketplace/offers', {
+        return apiRequest<any>('/api/marketplace/offers', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -399,15 +402,15 @@ export const marketplaceApi = {
     },
 
     getStats: async (): Promise<any> => {
-        return apiRequest<any>('/marketplace/stats');
+        return apiRequest<any>('/api/marketplace/stats');
     },
 
     getMyListings: async (): Promise<any[]> => {
-        return apiRequest<any[]>('/marketplace/my-listings');
+        return apiRequest<any[]>('/api/marketplace/my-listings');
     },
 
     getMyOffers: async (): Promise<any[]> => {
-        return apiRequest<any[]>('/marketplace/my-offers');
+        return apiRequest<any[]>('/api/marketplace/my-offers');
     },
 };
 
@@ -536,7 +539,7 @@ export const generationApi = {
         formData.append('project_id', projectId.toString());
         formData.append('file', file);
 
-        const url = `${API_BASE_URL}/generation/upload`;
+        const url = `${API_BASE_URL}/api/generation/upload`;
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -555,19 +558,19 @@ export const generationApi = {
 
     // File Preview
     getPreview: async (fileId: number, rows: number = 50): Promise<FilePreview> => {
-        return apiRequest<FilePreview>(`/generation/${fileId}/preview?rows=${rows}`);
+        return apiRequest<FilePreview>(`/api/generation/${fileId}/preview?rows=${rows}`);
     },
 
     // Column Mapping
     saveMapping: async (fileId: number, mapping: DatasetMapping): Promise<any> => {
-        return apiRequest<any>(`/generation/${fileId}/mapping`, {
+        return apiRequest<any>(`/api/generation/${fileId}/mapping`, {
             method: 'POST',
             body: JSON.stringify(mapping),
         });
     },
 
     validateMapping: async (fileId: number, mapping: DatasetMapping): Promise<MappingValidation> => {
-        return apiRequest<MappingValidation>(`/generation/${fileId}/validate-mapping`, {
+        return apiRequest<MappingValidation>(`/api/generation/${fileId}/validate-mapping`, {
             method: 'POST',
             body: JSON.stringify(mapping),
         });
@@ -579,26 +582,26 @@ export const generationApi = {
         if (projectType) params.append('project_type', projectType);
         if (registry) params.append('registry', registry);
         const query = params.toString() ? `?${params.toString()}` : '';
-        return apiRequest<{ methodologies: MethodologyInfo[] }>(`/generation/methodologies${query}`);
+        return apiRequest<{ methodologies: MethodologyInfo[] }>(`/api/generation/methodologies${query}`);
     },
 
     getMethodology: async (methodologyId: string): Promise<MethodologyInfo> => {
-        return apiRequest<MethodologyInfo>(`/generation/methodologies/${methodologyId}`);
+        return apiRequest<MethodologyInfo>(`/api/generation/methodologies/${methodologyId}`);
     },
 
     // Grid Emission Factors
     getGridEFs: async (countryCode?: string): Promise<{ emission_factors: GridEmissionFactor[] }> => {
         const query = countryCode ? `?country_code=${countryCode}` : '';
-        return apiRequest<{ emission_factors: GridEmissionFactor[] }>(`/generation/grid-ef${query}`);
+        return apiRequest<{ emission_factors: GridEmissionFactor[] }>(`/api/generation/grid-ef${query}`);
     },
 
     getCountries: async (): Promise<{ code: string; name: string }[]> => {
-        return apiRequest<{ code: string; name: string }[]>('/generation/grid-ef/countries');
+        return apiRequest<{ code: string; name: string }[]>('/api/api/generation/grid-ef/countries');
     },
 
     // Credit Estimation
     estimate: async (request: EstimationRequest): Promise<EstimationResult> => {
-        return apiRequest<EstimationResult>('/generation/estimate', {
+        return apiRequest<EstimationResult>('/api/api/generation/estimate', {
             method: 'POST',
             body: JSON.stringify(request),
         });
@@ -616,7 +619,7 @@ export const generationApi = {
         formData.append('project_type', projectType);
         formData.append('methodology_id', methodologyId);
 
-        const url = `${API_BASE_URL}/generation/quick-estimate`;
+        const url = `${API_BASE_URL}/api/generation/quick-estimate`;
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -634,7 +637,7 @@ export const generationApi = {
     },
 
     getEstimations: async (projectId: number): Promise<any[]> => {
-        return apiRequest<any[]>(`/generation/estimations/${projectId}`);
+        return apiRequest<any[]>(`/api/generation/estimations/${projectId}`);
     },
 };
 

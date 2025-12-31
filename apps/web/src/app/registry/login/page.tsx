@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export default function RegistryLoginPage() {
     const router = useRouter();
@@ -24,7 +24,7 @@ export default function RegistryLoginPage() {
         setError("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/registry/login`, {
+            const response = await fetch(`${API_BASE_URL}/auth/registry/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),

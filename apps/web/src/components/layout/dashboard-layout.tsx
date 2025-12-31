@@ -216,6 +216,15 @@ export default function DashboardLayout({
     const colors = roleColors[role];
 
     useEffect(() => {
+        // Authentication guard - check if user is logged in
+        const token = localStorage.getItem("token");
+        if (!token) {
+            // No token, redirect to role-specific login
+            const loginPath = role === "DEVELOPER" ? "/developer/login" : "/buyer/login";
+            router.replace(loginPath);
+            return;
+        }
+
         // Load collapsed state from localStorage
         const savedCollapsed = localStorage.getItem("sidebarCollapsed");
         if (savedCollapsed) {
@@ -223,9 +232,6 @@ export default function DashboardLayout({
         }
 
         const fetchProfile = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) return;
-
             try {
                 const response = await fetch("http://localhost:8000/api/auth/profile", {
                     headers: {
@@ -238,10 +244,8 @@ export default function DashboardLayout({
                     setUser(userData);
                     localStorage.setItem("user", JSON.stringify(userData));
                 } else {
-                    const cachedUser = localStorage.getItem("user");
-                    if (cachedUser) {
-                        setUser(JSON.parse(cachedUser));
-                    }
+                    // Token is invalid, logout
+                    handleLogout();
                 }
             } catch (error) {
                 const cachedUser = localStorage.getItem("user");
@@ -262,7 +266,7 @@ export default function DashboardLayout({
 
         window.addEventListener("profileUpdated", handleProfileUpdate);
         return () => window.removeEventListener("profileUpdated", handleProfileUpdate);
-    }, []);
+    }, [router, role]);
 
     const toggleSidebarCollapse = () => {
         const newState = !sidebarCollapsed;
@@ -287,9 +291,22 @@ export default function DashboardLayout({
     };
 
     const handleLogout = () => {
+        // Clear all authentication data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        router.push("/");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("access_token");
+
+        // Redirect to role-specific login page
+        const loginPath = role === "DEVELOPER" ? "/developer/login" : "/buyer/login";
+
+        // Use replace to prevent back button navigation
+        router.replace(loginPath);
+
+        // Force reload to clear any cached state
+        setTimeout(() => {
+            window.location.replace(loginPath);
+        }, 100);
     };
 
     const roleLabel = role === "DEVELOPER" ? "Developer" : "Buyer";
@@ -303,7 +320,7 @@ export default function DashboardLayout({
             )}>
                 {/* Logo Header */}
                 <div className={cn(
-                    "h-20 flex items-center border-b border-slate-100 dark:border-slate-700/50 transition-all duration-300",
+                    "h-24 py-4 flex items-center border-b border-slate-100 dark:border-slate-700/50 transition-all duration-300",
                     sidebarCollapsed ? "justify-center px-2" : "gap-4 px-6"
                 )}>
                     <div className={cn(
@@ -398,7 +415,7 @@ export default function DashboardLayout({
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
                     <aside className="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-800 shadow-2xl">
                         {/* Logo Header */}
-                        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700/50">
+                        <div className="h-24 py-4 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700/50">
                             <div className="flex items-center gap-4">
                                 <div className={cn(
                                     "w-12 h-12 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
@@ -435,7 +452,7 @@ export default function DashboardLayout({
                 sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
             )}>
                 {/* Header */}
-                <header className="sticky top-0 z-40 h-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50">
+                <header className="sticky top-0 z-40 h-24 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50">
                     <div className="flex items-center justify-between h-full px-6 lg:px-8">
                         {/* Mobile Menu Button */}
                         <Button

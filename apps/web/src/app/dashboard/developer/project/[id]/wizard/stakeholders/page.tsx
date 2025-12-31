@@ -393,7 +393,7 @@ export default function StakeholdersWizardPage() {
             </main>
 
             {/* Sticky Footer */}
-            <footer className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50">
+            <footer className="fixed bottom-0 left-0 right-0 lg:left-72 bg-card border-t shadow-lg z-50">
                 <div className="container mx-auto px-4">
                     <div className="h-16 flex items-center justify-between">
                         {/* Left: Back button */}

@@ -85,7 +85,13 @@ export default function SuperAdminDashboardLayout({
     const handleLogout = () => {
         localStorage.removeItem("superadmin_token");
         localStorage.removeItem("superadmin_user");
-        router.replace("/superadmin/login");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        // Use window.location.replace to prevent back button navigation
+        window.location.replace("/superadmin/login");
     };
 
     if (!mounted || !user) {
