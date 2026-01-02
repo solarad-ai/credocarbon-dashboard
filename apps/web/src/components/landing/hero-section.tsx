@@ -189,7 +189,7 @@ export function HeroSection() {
                         </p>
 
                         <div className="grid gap-4">
-                            <Link href="/developer/signup" onClick={() => setShowRoleModal(false)}>
+                            <Link href="/developer/login" onClick={() => setShowRoleModal(false)}>
                                 <div className="group p-6 rounded-xl border-2 border-white/10 hover:border-emerald-500/50 bg-white/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
@@ -204,7 +204,7 @@ export function HeroSection() {
                                 </div>
                             </Link>
 
-                            <Link href="/buyer/signup" onClick={() => setShowRoleModal(false)}>
+                            <Link href="/buyer/login" onClick={() => setShowRoleModal(false)}>
                                 <div className="group p-6 rounded-xl border-2 border-white/10 hover:border-blue-500/50 bg-white/5 hover:bg-blue-500/10 transition-all cursor-pointer">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">

@@ -44,7 +44,7 @@ export default function NewProjectWizard() {
             // Mock token if missing for demo dev flow
             const authHeader = token ? `Bearer ${token}` : "";
 
-            const response = await fetch("http://localhost:8000/api/projects", {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/projects", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

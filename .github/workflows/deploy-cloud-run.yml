@@ -96,7 +96,7 @@ jobs:
       - name: Get API URL
         id: api-url
         run: |
-          API_URL="https://credocarbon-api-641001192587.asia-south2.run.app"
+          API_URL="https://credocarbon-api-641001192587.asia-south2.run.app/api"
           echo "API_URL=${API_URL}" >> $GITHUB_ENV
           echo "Using API URL: ${API_URL}"
 
@@ -112,7 +112,7 @@ jobs:
 
       - name: Build Web Docker image
         env:
-          NEXT_PUBLIC_API_URL: ${{ env.API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app' }}
+          NEXT_PUBLIC_API_URL: ${{ env.API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app/api' }}
         run: |
           echo "Building with API URL: $NEXT_PUBLIC_API_URL"
           docker build -f Dockerfile.web \

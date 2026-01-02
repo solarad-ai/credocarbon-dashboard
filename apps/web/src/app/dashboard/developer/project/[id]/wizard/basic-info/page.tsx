@@ -242,16 +242,17 @@ export default function BasicInfoWizardPage() {
 
         try {
             // Prepare project data for API update
+            // Note: Using 'projectType' to match backend schema
             const apiData = {
                 name: formData.projectName || `New ${projectType.charAt(0).toUpperCase() + projectType.slice(1)} Project`,
-                code: formData.projectCode,
-                type: projectType,
+                projectType: projectType,
                 status: "draft",
-                country: formData.country,
                 wizard_step: "basic-info",
                 wizard_data: {
                     ...formData,
                     uploadedDocs,
+                    country: formData.country,
+                    projectCode: formData.projectCode,
                 },
             };
 
@@ -270,6 +271,10 @@ export default function BasicInfoWizardPage() {
             }
         } catch (error) {
             console.error("Error saving draft:", error);
+            // Log more details for debugging
+            if (error instanceof Error) {
+                console.error("Draft save error details:", error.message);
+            }
             setDraftStatus("saved"); // Don't block user even if save fails
             throw error; // Re-throw so handleNext can catch it
         }
@@ -774,7 +779,7 @@ export default function BasicInfoWizardPage() {
                                     <Label htmlFor="legalEntity">Legal Entity Name</Label>
                                     <Input
                                         id="legalEntity"
-                                        placeholder=""
+                                        placeholder="Enter Legal Entity Name"
                                         value={formData.legalEntityName}
                                         onChange={(e) => setFormData({ ...formData, legalEntityName: e.target.value })}
                                         className="h-11"
@@ -804,7 +809,7 @@ export default function BasicInfoWizardPage() {
                                 <Label htmlFor="regNumber">Registration Number</Label>
                                 <Input
                                     id="regNumber"
-                                    placeholder=""
+                                    placeholder="Enter Registration Number"
                                     value={formData.registrationNumber}
                                     onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
                                     className="h-11"
@@ -937,9 +942,14 @@ export default function BasicInfoWizardPage() {
                                     id="ppaDuration"
                                     type="number"
                                     min="0"
-                                    placeholder="e.g., 300"
+                                    placeholder="e.g., 300 (25 years)"
                                     value={formData.ppaDuration}
-                                    onChange={(e) => setFormData({ ...formData, ppaDuration: e.target.value })}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === '' || parseInt(value) >= 0) {
+                                            setFormData({ ...formData, ppaDuration: value });
+                                        }
+                                    }}
                                     className="h-11 w-full md:w-1/3"
                                 />
                                 <p className="text-xs text-muted-foreground">Enter duration in months (e.g., 300 months = 25 years)</p>

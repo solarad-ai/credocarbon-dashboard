@@ -132,6 +132,7 @@ export default function BuyerLoginPage() {
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 required
+                                disabled={isLoading}
                                 className="h-12"
                             />
                         </div>
@@ -154,12 +155,14 @@ export default function BuyerLoginPage() {
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     required
+                                    disabled={isLoading}
                                     className="h-12 pr-12"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    disabled={isLoading}
                                 >
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
@@ -173,6 +176,7 @@ export default function BuyerLoginPage() {
                                 onCheckedChange={(checked) =>
                                     setFormData({ ...formData, rememberMe: checked as boolean })
                                 }
+                                disabled={isLoading}
                             />
                             <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
                                 Remember me for 30 days
@@ -185,7 +189,10 @@ export default function BuyerLoginPage() {
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <div className="flex items-center gap-3">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span>Authenticating...</span>
+                                </div>
                             ) : (
                                 <>
                                     Sign In
@@ -193,6 +200,14 @@ export default function BuyerLoginPage() {
                                 </>
                             )}
                         </Button>
+
+                        {/* Loading overlay message */}
+                        {isLoading && (
+                            <div className="text-center text-sm text-muted-foreground animate-fade-in">
+                                <p>Please wait while we verify your credentials...</p>
+                                <p className="text-xs mt-1">This may take a few seconds</p>
+                            </div>
+                        )}
                     </form>
 
                     <div className="mt-8 text-center">

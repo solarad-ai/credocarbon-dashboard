@@ -12,7 +12,7 @@ export default function BuyerNotifications() {
         const fetchNotifications = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await fetch("http://localhost:8000/api/notifications", {
+                const res = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/notifications", {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (res.ok) {

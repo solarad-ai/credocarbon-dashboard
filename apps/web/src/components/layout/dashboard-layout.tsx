@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/config";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -233,7 +234,7 @@ export default function DashboardLayout({
 
         const fetchProfile = async () => {
             try {
-                const response = await fetch("http://localhost:8000/api/auth/profile", {
+                const response = await fetch(`${API_URL}/auth/profile`, {
                     headers: {
                         "Authorization": `Bearer ${token}`,
                     },

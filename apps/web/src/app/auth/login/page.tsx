@@ -47,7 +47,7 @@ export default function LoginPage() {
             // Looking at `apps/web/src/app/auth/login/page.tsx` line 40: "// TODO: Call API". 
             // I MUST implement the real API call here.
 
-            const response = await fetch("http://localhost:8000/api/auth/developer/login", {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/developer/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values)

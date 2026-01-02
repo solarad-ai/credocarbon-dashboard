@@ -128,7 +128,7 @@ function ProfileContent() {
                 }
 
                 // Fetch fresh profile data from API
-                const response = await fetch("http://localhost:8000/api/auth/profile", {
+                const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
                     headers: {
                         "Authorization": `Bearer ${token}`,
                     },
@@ -193,7 +193,7 @@ function ProfileContent() {
             const token = localStorage.getItem("token");
 
             // Save to backend API
-            const response = await fetch("http://localhost:8000/api/auth/profile", {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -277,7 +277,7 @@ function ProfileContent() {
             // Save to backend API
             const token = localStorage.getItem("token");
             try {
-                const response = await fetch("http://localhost:8000/api/auth/profile", {
+                const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -346,7 +346,7 @@ function ProfileContent() {
                     // Save to backend API
                     const token = localStorage.getItem("token");
                     try {
-                        const response = await fetch("http://localhost:8000/api/auth/profile", {
+                        const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
                             method: "PUT",
                             headers: {
                                 "Content-Type": "application/json",
@@ -379,7 +379,7 @@ function ProfileContent() {
         // Remove from backend
         const token = localStorage.getItem("token");
         try {
-            const response = await fetch("http://localhost:8000/api/auth/profile", {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

@@ -1,12 +1,24 @@
+"""
+CredoCarbon API Main Entry Point
+
+FastAPI application with cloud-agnostic infrastructure.
+Configuration is loaded from environment variables via apps.api.core.config.
+"""
+
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+# Load environment variables first
 load_dotenv()
-from fastapi.middleware.cors import CORSMiddleware
-from apps.api.core.ports import FileStoragePort, EventBusPort, TaskQueuePort, EmailPort, MalwareScannerPort
-from apps.api.infra.local.adapters import LocalFileStorageAdapter, LocalEventBusAdapter, LocalTaskQueueAdapter, LocalEmailAdapter, LocalMalwareScannerAdapter
-import os
 
+from apps.api.core.config import settings
+from apps.api.core.database import Base, engine
+
+# Import routers
 from apps.api.modules.auth.router import router as auth_router
 from apps.api.modules.project.router import router as project_router
 from apps.api.modules.audit.router import router as audit_router
@@ -20,32 +32,55 @@ from apps.api.modules.superadmin.router import router as superadmin_router
 from apps.api.modules.vvb.router import router as vvb_router
 from apps.api.modules.registry.router import router as registry_router
 from apps.api.modules.admin.router import router as admin_router
-# Import models so SQLAlchemy knows about them for table creation
+
+# Import models for SQLAlchemy table creation
 from apps.api.core.models import *  # noqa
 from apps.api.modules.vvb.models import ValidationTask, VerificationTask, VVBQuery, VVBQueryResponse  # noqa
 from apps.api.modules.registry.models import RegistryReview, RegistryQuery, IssuanceRecord, CreditBatch  # noqa
 from apps.api.modules.generation.models import *  # noqa
-from apps.api.core.database import Base, engine
 
-app = FastAPI(title="CredoCarbon API", version="0.1.0")
 
-# CORS configuration from environment variable
-default_origins = (
-    "http://localhost:3000,"
-    "http://127.0.0.1:3000,"
-    "http://localhost:3001,"
-    "http://127.0.0.1:3001"
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug else logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-origins = os.getenv("CORS_ORIGINS", default_origins).split(",")
+logger = logging.getLogger(__name__)
 
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events."""
+    # Startup
+    logger.info(f"Starting CredoCarbon API (env={settings.env}, cloud={settings.cloud.provider})")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created/verified")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down CredoCarbon API")
+
+
+# Create FastAPI application
+app = FastAPI(
+    title="CredoCarbon API",
+    version="0.1.0",
+    description="Carbon credit marketplace API",
+    lifespan=lifespan,
+)
+
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Register routers
 app.include_router(auth_router, prefix="/api")
 app.include_router(project_router, prefix="/api")
 app.include_router(audit_router, prefix="/api")
@@ -60,21 +95,21 @@ app.include_router(vvb_router, prefix="/api")
 app.include_router(registry_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 
-# Dependency Injection Container (Simple manual DI for now)
-# Container moved to core/container.py
-
-# Create database tables on startup
-@app.on_event("startup")
-def startup_event():
-    """Create all database tables on startup"""
-    Base.metadata.create_all(bind=engine)
 
 @app.get("/")
 def read_root():
+    """Root endpoint."""
     return {"message": "Welcome to CredoCarbon API"}
+
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "env": os.getenv("ENV", "local")}
+    """Health check endpoint for container orchestration."""
+    return {
+        "status": "ok",
+        "env": settings.env,
+        "cloud_provider": settings.cloud.provider,
+    }
+
 
 # Run with: uvicorn apps.api.main:app --reload

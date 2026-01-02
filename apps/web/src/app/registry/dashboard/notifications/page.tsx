@@ -24,7 +24,7 @@ interface Notification {
     link?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://credocarbon-api-641001192587.asia-south2.run.app";
 
 const typeIcons: Record<string, React.ReactNode> = {
     info: <Info className="h-5 w-5 text-blue-500" />,

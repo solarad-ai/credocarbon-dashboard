@@ -56,6 +56,27 @@ export default function BuyerSignupPage() {
         marketingConsent: false,
     });
 
+    // Password requirement checks
+    const passwordChecks = {
+        hasUppercase: /[A-Z]/.test(formData.password),
+        hasLowercase: /[a-z]/.test(formData.password),
+        hasNumber: /\d/.test(formData.password),
+        hasSymbol: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password),
+        hasMinLength: formData.password.length >= 8,
+    };
+
+    const passwordStrength = () => {
+        const { password } = formData;
+        if (password.length === 0) return { score: 0, label: "" };
+        const checksPassed = Object.values(passwordChecks).filter(Boolean).length;
+        if (checksPassed <= 2) return { score: 1, label: "Weak" };
+        if (checksPassed === 3) return { score: 2, label: "Fair" };
+        if (checksPassed === 4) return { score: 3, label: "Good" };
+        return { score: 4, label: "Strong" };
+    };
+
+    const strength = passwordStrength();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -240,6 +261,36 @@ export default function BuyerSignupPage() {
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
+                                    {formData.password && (
+                                        <div className="space-y-2 mt-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all ${strength.score === 1 ? "w-1/4 bg-red-500" :
+                                                            strength.score === 2 ? "w-2/4 bg-yellow-500" :
+                                                                strength.score === 3 ? "w-3/4 bg-blue-500" :
+                                                                    strength.score === 4 ? "w-full bg-green-500" : "w-0"
+                                                            }`}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">{strength.label}</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-1 text-xs">
+                                                <span className={passwordChecks.hasUppercase ? "text-green-600" : "text-muted-foreground"}>
+                                                    {passwordChecks.hasUppercase ? "✓" : "○"} Uppercase
+                                                </span>
+                                                <span className={passwordChecks.hasLowercase ? "text-green-600" : "text-muted-foreground"}>
+                                                    {passwordChecks.hasLowercase ? "✓" : "○"} Lowercase
+                                                </span>
+                                                <span className={passwordChecks.hasNumber ? "text-green-600" : "text-muted-foreground"}>
+                                                    {passwordChecks.hasNumber ? "✓" : "○"} Number
+                                                </span>
+                                                <span className={passwordChecks.hasSymbol ? "text-green-600" : "text-muted-foreground"}>
+                                                    {passwordChecks.hasSymbol ? "✓" : "○"} Symbol
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="confirmPassword">Confirm Password *</Label>
@@ -264,7 +315,7 @@ export default function BuyerSignupPage() {
                                 <Label htmlFor="organizationName">Organization Name *</Label>
                                 <Input
                                     id="organizationName"
-                                    placeholder="Acme Corporation"
+                                    placeholder="Enter Organization Name"
                                     value={formData.organizationName}
                                     onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
                                     required

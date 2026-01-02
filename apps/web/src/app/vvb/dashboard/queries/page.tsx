@@ -45,7 +45,7 @@ interface Query {
     project_name?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://credocarbon-api-641001192587.asia-south2.run.app";
 
 const statusColors: Record<string, string> = {
     OPEN: "bg-amber-500/10 text-amber-600 border-amber-500/20",

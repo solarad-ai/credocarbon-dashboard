@@ -350,7 +350,7 @@ export default function DeveloperSignupPage() {
                                     <Label htmlFor="state">State / Province</Label>
                                     <Input
                                         id="state"
-                                        placeholder=""
+                                        placeholder="Enter State/Province"
                                         value={formData.state}
                                         onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                                         className="h-11"

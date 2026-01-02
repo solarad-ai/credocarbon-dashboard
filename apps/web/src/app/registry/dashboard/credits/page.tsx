@@ -31,7 +31,7 @@ interface CreditBatch {
     created_at: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://credocarbon-api-641001192587.asia-south2.run.app";
 
 const statusColors: Record<string, string> = {
     OWNED: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",

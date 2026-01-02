@@ -25,7 +25,7 @@ interface DashboardStats {
     completed_this_month: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://credocarbon-api-641001192587.asia-south2.run.app";
 
 export default function RegistryDashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);

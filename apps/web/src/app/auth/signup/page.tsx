@@ -47,7 +47,7 @@ export default function SignupPage() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
-            const response = await fetch("http://localhost:8000/api/auth/signup", {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),
