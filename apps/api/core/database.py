@@ -20,6 +20,10 @@ else:
     engine = create_engine(
         DATABASE_URL,
         poolclass=NullPool,  # No local pooling - let Supabase handle it
+        connect_args={
+            "sslmode": "require",  # Require SSL for Supabase
+            "options": "-c timezone=utc",  # Set timezone
+        },
     )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
