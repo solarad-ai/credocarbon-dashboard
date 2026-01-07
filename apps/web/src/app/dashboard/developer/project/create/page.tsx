@@ -281,28 +281,27 @@ export default function CreateProjectPage() {
                 </Card>
             )}
 
+            {/* Loading Overlay */}
+            {isCreating && (
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-card p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                        <div className="text-center">
+                            <p className="font-semibold text-lg">Creating your project...</p>
+                            <p className="text-sm text-muted-foreground">Please wait while we set things up</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-start">
                 <Link href="/dashboard/developer">
                     <Button variant="outline">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Cancel
                     </Button>
                 </Link>
-                <Button
-                    onClick={() => selectedType && handleCreateProject(selectedType)}
-                    disabled={!selectedType || isCreating}
-                    className="gradient-primary text-white btn-shine"
-                >
-                    {isCreating ? (
-                        "Creating..."
-                    ) : (
-                        <>
-                            Continue to Project Details
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                    )}
-                </Button>
             </div>
         </div>
     );
