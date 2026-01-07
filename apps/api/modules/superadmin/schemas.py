@@ -43,7 +43,7 @@ class UserListItem(BaseModel):
     role: str
     is_active: bool
     is_verified: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
     profile_data: Optional[dict] = None
 
     class Config:
@@ -86,8 +86,8 @@ class ProjectListItem(BaseModel):
     developer_id: int
     developer_email: Optional[str] = None
     country: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -109,7 +109,7 @@ class TransactionListItem(BaseModel):
     project_id: Optional[int] = None
     project_name: Optional[str] = None
     amount_cents: Optional[int] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -127,7 +127,7 @@ class ListingListItem(BaseModel):
     quantity_sold: int
     price_per_ton_cents: int
     status: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -145,7 +145,7 @@ class RetirementListItem(BaseModel):
     vintage: int
     beneficiary: str
     status: str
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -228,8 +228,8 @@ class TaskListItem(BaseModel):
     documents: List[str] = []
     created_by: Optional[int] = None
     creator_email: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -269,7 +269,7 @@ class RegistryItem(BaseModel):
     requirements: dict = {}
     is_active: bool
     display_order: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -307,7 +307,7 @@ class ProjectTypeItem(BaseModel):
     applicable_registries: List[str] = []
     is_active: bool
     display_order: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -339,8 +339,8 @@ class FeatureFlagItem(BaseModel):
     is_enabled: bool
     target_roles: List[str] = []
     metadata: dict = {}
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -385,7 +385,7 @@ class AnnouncementItem(BaseModel):
     end_date: Optional[datetime] = None
     link_url: Optional[str] = None
     link_text: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -423,7 +423,7 @@ class PlatformFeeItem(BaseModel):
     min_amount_cents: int
     max_amount_cents: Optional[int] = None
     is_active: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -458,8 +458,8 @@ class EmailTemplateItem(BaseModel):
     body_text: Optional[str] = None
     variables: List[str] = []
     is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
