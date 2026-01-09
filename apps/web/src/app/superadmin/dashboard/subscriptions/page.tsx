@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Search, ChevronLeft, ChevronRight, Crown, Edit2, Check, X } from "lucide-react";
+import { CreditCard, Search, ChevronLeft, ChevronRight, Crown, Edit2, Check, X, Users, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Dialog,
     DialogContent,
@@ -25,6 +26,15 @@ interface UserSubscription {
     tier: string;
     tier_name: string;
     valid_until: string | null;
+    created_at: string;
+}
+
+interface User {
+    id: number;
+    email: string;
+    role: string;
+    is_active: boolean;
+    profile_data: any;
     created_at: string;
 }
 
@@ -47,20 +57,35 @@ const TIER_COLORS: Record<string, string> = {
     PKG_FULL: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
 };
 
+const TIER_NAMES: Record<string, string> = {
+    PKG_0: "Free Analysis",
+    PKG_1: "Buyer Sourcing",
+    PKG_2: "Dev Registration",
+    PKG_3: "Dev MRV",
+    PKG_4: "RECs",
+    PKG_5: "Compliance",
+    PKG_6: "Add-ons",
+    PKG_FULL: "Full Access",
+};
+
 export default function SubscriptionsPage() {
+    const [activeTab, setActiveTab] = useState<"subscriptions" | "all-users">("all-users");
     const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [tiers, setTiers] = useState<TierDefinition[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [tierFilter, setTierFilter] = useState("all");
+    const [roleFilter, setRoleFilter] = useState("all");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<UserSubscription | null>(null);
-    const [selectedTier, setSelectedTier] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [selectedUserEmail, setSelectedUserEmail] = useState("");
+    const [selectedTier, setSelectedTier] = useState("PKG_0");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -68,8 +93,12 @@ export default function SubscriptionsPage() {
     }, []);
 
     useEffect(() => {
-        fetchSubscriptions();
-    }, [page, tierFilter]);
+        if (activeTab === "subscriptions") {
+            fetchSubscriptions();
+        } else {
+            fetchAllUsers();
+        }
+    }, [page, tierFilter, roleFilter, activeTab]);
 
     const fetchTiers = async () => {
         try {
@@ -99,27 +128,62 @@ export default function SubscriptionsPage() {
         }
     };
 
+    const fetchAllUsers = async () => {
+        setLoading(true);
+        try {
+            const data = await superadminApi.getUsers({
+                page,
+                page_size: 15,
+                role: roleFilter !== "all" ? roleFilter : undefined,
+                search: search || undefined,
+            });
+            setAllUsers(data.items);
+            setTotalPages(data.total_pages);
+            setTotal(data.total);
+        } catch (err) {
+            console.error("Failed to fetch users", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setPage(1);
-        fetchSubscriptions();
+        if (activeTab === "subscriptions") {
+            fetchSubscriptions();
+        } else {
+            fetchAllUsers();
+        }
     };
 
-    const openAssignModal = (user: UserSubscription) => {
-        setSelectedUser(user);
-        setSelectedTier(user.tier);
+    const openAssignModalForSubscription = (sub: UserSubscription) => {
+        setSelectedUserId(sub.user_id);
+        setSelectedUserEmail(sub.user_email);
+        setSelectedTier(sub.tier);
+        setShowModal(true);
+    };
+
+    const openAssignModalForUser = (user: User) => {
+        setSelectedUserId(user.id);
+        setSelectedUserEmail(user.email);
+        setSelectedTier("PKG_0");
         setShowModal(true);
     };
 
     const handleAssign = async () => {
-        if (!selectedUser || !selectedTier) return;
+        if (!selectedUserId || !selectedTier) return;
         setSaving(true);
         try {
-            await superadminApi.assignUserSubscription(selectedUser.user_id, {
+            await superadminApi.assignUserSubscription(selectedUserId, {
                 tier: selectedTier,
             });
             setShowModal(false);
-            fetchSubscriptions();
+            if (activeTab === "subscriptions") {
+                fetchSubscriptions();
+            } else {
+                fetchAllUsers();
+            }
         } catch (err) {
             console.error("Failed to assign subscription", err);
             alert("Failed to assign subscription. Please try again.");
@@ -128,12 +192,13 @@ export default function SubscriptionsPage() {
         }
     };
 
-    const getTierBadge = (tier: string, tierName: string) => {
+    const getTierBadge = (tier: string, tierName?: string) => {
         const color = TIER_COLORS[tier] || "bg-slate-100 text-slate-700";
+        const name = tierName || TIER_NAMES[tier] || tier;
         return (
             <Badge className={`${color} font-medium`}>
                 {tier === "PKG_FULL" && <Crown className="h-3 w-3 mr-1" />}
-                {tierName}
+                {name}
             </Badge>
         );
     };
@@ -145,6 +210,7 @@ export default function SubscriptionsPage() {
             ADMIN: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
             VVB: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
             REGISTRY: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+            SUPER_ADMIN: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
         };
         return <Badge className={colors[role] || "bg-slate-100"}>{role}</Badge>;
     };
@@ -156,8 +222,22 @@ export default function SubscriptionsPage() {
                     <CreditCard className="h-6 w-6 text-purple-500" />
                     Subscription Management
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400">{total} users with subscriptions</p>
+                <p className="text-slate-500 dark:text-slate-400">{total} {activeTab === "subscriptions" ? "users with subscriptions" : "total users"}</p>
             </div>
+
+            {/* Tab Switcher */}
+            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setPage(1); setSearch(""); }} className="w-full">
+                <TabsList className="bg-slate-100 dark:bg-slate-800">
+                    <TabsTrigger value="all-users" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">
+                        <Users className="h-4 w-4 mr-2" />
+                        All Users
+                    </TabsTrigger>
+                    <TabsTrigger value="subscriptions" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        With Subscriptions
+                    </TabsTrigger>
+                </TabsList>
+            </Tabs>
 
             {/* Tier Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -191,31 +271,47 @@ export default function SubscriptionsPage() {
                                 className="pl-10 dark:bg-slate-700 dark:border-slate-600"
                             />
                         </div>
-                        <Select value={tierFilter} onValueChange={(v) => { setTierFilter(v); setPage(1); }}>
-                            <SelectTrigger className="w-full sm:w-48 dark:bg-slate-700 dark:border-slate-600">
-                                <SelectValue placeholder="Filter by Tier" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Tiers</SelectItem>
-                                {tiers.map((tier) => (
-                                    <SelectItem key={tier.tier} value={tier.tier}>{tier.tier_name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {activeTab === "all-users" && (
+                            <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setPage(1); }}>
+                                <SelectTrigger className="w-full sm:w-40 dark:bg-slate-700 dark:border-slate-600">
+                                    <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Roles</SelectItem>
+                                    <SelectItem value="DEVELOPER">Developer</SelectItem>
+                                    <SelectItem value="BUYER">Buyer</SelectItem>
+                                    <SelectItem value="VVB">VVB</SelectItem>
+                                    <SelectItem value="REGISTRY">Registry</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                        {activeTab === "subscriptions" && (
+                            <Select value={tierFilter} onValueChange={(v) => { setTierFilter(v); setPage(1); }}>
+                                <SelectTrigger className="w-full sm:w-48 dark:bg-slate-700 dark:border-slate-600">
+                                    <SelectValue placeholder="Filter by Tier" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Tiers</SelectItem>
+                                    {tiers.map((tier) => (
+                                        <SelectItem key={tier.tier} value={tier.tier}>{tier.tier_name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                         <Button type="submit" className="bg-purple-600 hover:bg-purple-700">Search</Button>
                     </form>
                 </CardContent>
             </Card>
 
-            {/* Subscriptions Table */}
+            {/* Table */}
             <Card className="dark:bg-slate-800 dark:border-slate-700">
                 <CardContent className="p-0">
                     {loading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
                         </div>
-                    ) : subscriptions.length === 0 ? (
-                        <div className="text-center py-12 text-slate-500">No subscriptions found</div>
+                    ) : (activeTab === "subscriptions" ? subscriptions : allUsers).length === 0 ? (
+                        <div className="text-center py-12 text-slate-500">No users found</div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full">
@@ -223,38 +319,73 @@ export default function SubscriptionsPage() {
                                     <tr>
                                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">User</th>
                                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Role</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Tier</th>
-                                        <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Valid Until</th>
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">
+                                            {activeTab === "subscriptions" ? "Tier" : "Status"}
+                                        </th>
+                                        <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Joined</th>
                                         <th className="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                    {subscriptions.map((sub) => (
-                                        <tr key={sub.user_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                                            <td className="px-6 py-4">
-                                                <div>
-                                                    <p className="font-medium text-slate-900 dark:text-white">{sub.user_email}</p>
-                                                    <p className="text-xs text-slate-500">{sub.user_name || `ID: ${sub.user_id}`}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">{getRoleBadge(sub.role)}</td>
-                                            <td className="px-6 py-4">{getTierBadge(sub.tier, sub.tier_name)}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-500">
-                                                {sub.valid_until ? new Date(sub.valid_until).toLocaleDateString() : "—"}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => openAssignModal(sub)}
-                                                    className="text-purple-600 hover:text-purple-700"
-                                                >
-                                                    <Edit2 className="h-4 w-4 mr-1" />
-                                                    Change Tier
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {activeTab === "subscriptions" ? (
+                                        subscriptions.map((sub) => (
+                                            <tr key={sub.user_id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className="font-medium text-slate-900 dark:text-white">{sub.user_email}</p>
+                                                        <p className="text-xs text-slate-500">{sub.user_name || `ID: ${sub.user_id}`}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">{getRoleBadge(sub.role)}</td>
+                                                <td className="px-6 py-4">{getTierBadge(sub.tier, sub.tier_name)}</td>
+                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                    {new Date(sub.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => openAssignModalForSubscription(sub)}
+                                                        className="text-purple-600 hover:text-purple-700"
+                                                    >
+                                                        <Edit2 className="h-4 w-4 mr-1" />
+                                                        Change
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        allUsers.map((user) => (
+                                            <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className="font-medium text-slate-900 dark:text-white">{user.email}</p>
+                                                        <p className="text-xs text-slate-500">ID: {user.id}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
+                                                <td className="px-6 py-4">
+                                                    <Badge className={user.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                                                        {user.is_active ? "Active" : "Inactive"}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                    {new Date(user.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => openAssignModalForUser(user)}
+                                                        className="text-purple-600 hover:text-purple-700"
+                                                    >
+                                                        <UserPlus className="h-4 w-4 mr-1" />
+                                                        Assign Tier
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -279,9 +410,9 @@ export default function SubscriptionsPage() {
             <Dialog open={showModal} onOpenChange={setShowModal}>
                 <DialogContent className="dark:bg-slate-800">
                     <DialogHeader>
-                        <DialogTitle>Change Subscription Tier</DialogTitle>
+                        <DialogTitle>Assign Subscription Tier</DialogTitle>
                         <DialogDescription>
-                            Update subscription for {selectedUser?.user_email}
+                            Assign or update tier for: {selectedUserEmail}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
