@@ -186,15 +186,9 @@ class Settings(BaseSettings):
         """Get CORS origins as a list, including production origins when in prod."""
         origins = [origin.strip() for origin in self.cors_origins.split(",")]
         
-        # Always include production origins when in prod environment
+        # In production, allow all origins for now to fix CORS issues
         if self.env == "prod":
-            prod_origins = [
-                "https://credocarbon-web-641001192587.asia-south2.run.app",
-                "https://dashboard.credocarbon.com",
-            ]
-            for origin in prod_origins:
-                if origin not in origins:
-                    origins.append(origin)
+            return ["*"]
         
         return origins
     
