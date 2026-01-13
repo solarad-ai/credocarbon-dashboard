@@ -898,12 +898,66 @@ export const superadminApi = {
         });
     },
 
-    getVVBUsers: async (): Promise<any> => {
-        return superadminRequest<any>('/superadmin/users?role=VVB&page_size=100');
+    getVVBUsers: async (params: { page?: number; page_size?: number; search?: string } = {}): Promise<any> => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append('page', params.page.toString());
+        if (params.page_size) searchParams.append('page_size', params.page_size.toString());
+        if (params.search) searchParams.append('search', params.search);
+        return superadminRequest<any>(`/superadmin/vvb-users?${searchParams.toString()}`);
     },
 
-    getRegistryUsers: async (): Promise<any> => {
-        return superadminRequest<any>('/superadmin/users?role=REGISTRY&page_size=100');
+    getVVBUser: async (userId: number): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/vvb-users/${userId}`);
+    },
+
+    updateVVBUser: async (userId: number, data: any): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/vvb-users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteVVBUser: async (userId: number): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/vvb-users/${userId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    resetVVBPassword: async (userId: number, newPassword: string): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/vvb-users/${userId}/reset-password?new_password=${encodeURIComponent(newPassword)}`, {
+            method: 'POST',
+        });
+    },
+
+    getRegistryUsers: async (params: { page?: number; page_size?: number; search?: string } = {}): Promise<any> => {
+        const searchParams = new URLSearchParams();
+        if (params.page) searchParams.append('page', params.page.toString());
+        if (params.page_size) searchParams.append('page_size', params.page_size.toString());
+        if (params.search) searchParams.append('search', params.search);
+        return superadminRequest<any>(`/superadmin/registry-users?${searchParams.toString()}`);
+    },
+
+    getRegistryUser: async (userId: number): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/registry-users/${userId}`);
+    },
+
+    updateRegistryUser: async (userId: number, data: any): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/registry-users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteRegistryUser: async (userId: number): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/registry-users/${userId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    resetRegistryPassword: async (userId: number, newPassword: string): Promise<any> => {
+        return superadminRequest<any>(`/superadmin/registry-users/${userId}/reset-password?new_password=${encodeURIComponent(newPassword)}`, {
+            method: 'POST',
+        });
     },
 
     // Transactions

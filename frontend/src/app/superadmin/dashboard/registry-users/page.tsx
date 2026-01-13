@@ -10,7 +10,11 @@ import {
     ChevronRight,
     AlertCircle,
     CheckCircle2,
-    Loader2
+    Loader2,
+    Edit,
+    Trash2,
+    Key,
+    MoreVertical
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +42,10 @@ export default function RegistryUsersPage() {
     const [registryUsers, setRegistryUsers] = useState<RegistryUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<RegistryUser | null>(null);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -46,10 +54,17 @@ export default function RegistryUsersPage() {
         email: "",
         password: "",
         name: "",
-        registry_name: "",
+        organization: "",
     });
+    const [editData, setEditData] = useState({
+        name: "",
+        organization: "",
+        is_active: true,
+    });
+    const [newPassword, setNewPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [formMessage, setFormMessage] = useState<FormMessage | null>(null);
+    const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
 
     useEffect(() => {
         fetchRegistryUsers();
@@ -58,7 +73,7 @@ export default function RegistryUsersPage() {
     const fetchRegistryUsers = async () => {
         setLoading(true);
         try {
-            const data = await superadminApi.getRegistryUsers();
+            const data = await superadminApi.getRegistryUsers({ page, search: search || undefined });
             setRegistryUsers(data.items || []);
             setTotalPages(data.total_pages || 1);
             setTotal(data.total || 0);
@@ -85,13 +100,12 @@ export default function RegistryUsersPage() {
                 password: formData.password,
                 profile_data: {
                     name: formData.name,
-                    registry_name: formData.registry_name
+                    organization: formData.organization
                 },
             });
             setFormMessage({ type: 'success', text: 'Registry user created successfully!' });
-            setFormData({ email: "", password: "", name: "", registry_name: "" });
+            setFormData({ email: "", password: "", name: "", organization: "" });
             fetchRegistryUsers();
-            // Auto-close form after success
             setTimeout(() => {
                 setShowForm(false);
                 setFormMessage(null);
@@ -99,6 +113,97 @@ export default function RegistryUsersPage() {
         } catch (err: any) {
             const errorMessage = err.message || "Failed to create Registry user";
             setFormMessage({ type: 'error', text: errorMessage });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleEdit = (user: RegistryUser) => {
+        setSelectedUser(user);
+        setEditData({
+            name: user.profile_data?.name || "",
+            organization: user.profile_data?.organization || user.profile_data?.registry_name || "",
+            is_active: user.is_active,
+        });
+        setShowEditModal(true);
+        setActionMenuOpen(null);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUser) return;
+        setSubmitting(true);
+        setFormMessage(null);
+        try {
+            await superadminApi.updateRegistryUser(selectedUser.id, {
+                is_active: editData.is_active,
+                profile_data: {
+                    name: editData.name,
+                    organization: editData.organization,
+                },
+            });
+            setFormMessage({ type: 'success', text: 'Registry user updated successfully!' });
+            fetchRegistryUsers();
+            setTimeout(() => {
+                setShowEditModal(false);
+                setFormMessage(null);
+                setSelectedUser(null);
+            }, 1500);
+        } catch (err: any) {
+            setFormMessage({ type: 'error', text: err.message || "Failed to update user" });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = (user: RegistryUser) => {
+        setSelectedUser(user);
+        setShowDeleteModal(true);
+        setActionMenuOpen(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedUser) return;
+        setSubmitting(true);
+        try {
+            await superadminApi.deleteRegistryUser(selectedUser.id);
+            setFormMessage({ type: 'success', text: 'Registry user deactivated successfully!' });
+            fetchRegistryUsers();
+            setTimeout(() => {
+                setShowDeleteModal(false);
+                setFormMessage(null);
+                setSelectedUser(null);
+            }, 1500);
+        } catch (err: any) {
+            setFormMessage({ type: 'error', text: err.message || "Failed to deactivate user" });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleResetPassword = (user: RegistryUser) => {
+        setSelectedUser(user);
+        setNewPassword("");
+        setShowResetModal(true);
+        setActionMenuOpen(null);
+    };
+
+    const handleResetSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUser || newPassword.length < 8) return;
+        setSubmitting(true);
+        setFormMessage(null);
+        try {
+            await superadminApi.resetRegistryPassword(selectedUser.id, newPassword);
+            setFormMessage({ type: 'success', text: 'Password reset successfully!' });
+            setTimeout(() => {
+                setShowResetModal(false);
+                setFormMessage(null);
+                setSelectedUser(null);
+                setNewPassword("");
+            }, 1500);
+        } catch (err: any) {
+            setFormMessage({ type: 'error', text: err.message || "Failed to reset password" });
         } finally {
             setSubmitting(false);
         }
@@ -128,11 +233,10 @@ export default function RegistryUsersPage() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* Form Message */}
                             {formMessage && (
                                 <div className={`flex items-center gap-2 p-3 rounded-lg ${formMessage.type === 'success'
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                     }`}>
                                     {formMessage.type === 'success' ? (
                                         <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
@@ -155,10 +259,10 @@ export default function RegistryUsersPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Registry Name</Label>
+                                    <Label>Organization / Registry</Label>
                                     <Input
-                                        value={formData.registry_name}
-                                        onChange={(e) => setFormData({ ...formData, registry_name: e.target.value })}
+                                        value={formData.organization}
+                                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
                                         placeholder="e.g., Gold Standard, Verra"
                                         required
                                         disabled={submitting}
@@ -206,6 +310,115 @@ export default function RegistryUsersPage() {
                 </Card>
             )}
 
+            {/* Edit Modal */}
+            {showEditModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4 dark:bg-slate-800 dark:border-slate-700">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-slate-900 dark:text-white">Edit Registry User</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowEditModal(false); setFormMessage(null); }}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleEditSubmit} className="space-y-4">
+                                {formMessage && (
+                                    <div className={`flex items-center gap-2 p-3 rounded-lg ${formMessage.type === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                        {formMessage.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                        <span className="text-sm">{formMessage.text}</span>
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <Label>Email (read-only)</Label>
+                                    <Input value={selectedUser.email} disabled className="dark:bg-slate-600 dark:border-slate-500" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Name</Label>
+                                    <Input value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} disabled={submitting} className="dark:bg-slate-700 dark:border-slate-600" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Organization / Registry</Label>
+                                    <Input value={editData.organization} onChange={(e) => setEditData({ ...editData, organization: e.target.value })} disabled={submitting} className="dark:bg-slate-700 dark:border-slate-600" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" id="is_active" checked={editData.is_active} onChange={(e) => setEditData({ ...editData, is_active: e.target.checked })} className="rounded" />
+                                    <Label htmlFor="is_active">Active</Label>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <Button type="button" variant="outline" onClick={() => { setShowEditModal(false); setFormMessage(null); }} disabled={submitting}>Cancel</Button>
+                                    <Button type="submit" disabled={submitting} className="bg-teal-600 hover:bg-teal-700">
+                                        {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : "Save Changes"}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4 dark:bg-slate-800 dark:border-slate-700">
+                        <CardHeader>
+                            <CardTitle className="text-slate-900 dark:text-white">Deactivate Registry User</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {formMessage && (
+                                <div className={`flex items-center gap-2 p-3 rounded-lg ${formMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    {formMessage.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                    <span className="text-sm">{formMessage.text}</span>
+                                </div>
+                            )}
+                            <p className="text-slate-600 dark:text-slate-400">
+                                Are you sure you want to deactivate <strong>{selectedUser.email}</strong>? This will prevent them from logging in.
+                            </p>
+                            <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="outline" onClick={() => { setShowDeleteModal(false); setFormMessage(null); }} disabled={submitting}>Cancel</Button>
+                                <Button onClick={handleDeleteConfirm} disabled={submitting} className="bg-red-600 hover:bg-red-700">
+                                    {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Deactivating...</> : "Deactivate User"}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Reset Password Modal */}
+            {showResetModal && selectedUser && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <Card className="w-full max-w-md mx-4 dark:bg-slate-800 dark:border-slate-700">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-slate-900 dark:text-white">Reset Password</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowResetModal(false); setFormMessage(null); }}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleResetSubmit} className="space-y-4">
+                                {formMessage && (
+                                    <div className={`flex items-center gap-2 p-3 rounded-lg ${formMessage.type === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                        {formMessage.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                                        <span className="text-sm">{formMessage.text}</span>
+                                    </div>
+                                )}
+                                <p className="text-sm text-slate-600 dark:text-slate-400">Reset password for: <strong>{selectedUser.email}</strong></p>
+                                <div className="space-y-2">
+                                    <Label>New Password</Label>
+                                    <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 8 characters" minLength={8} required disabled={submitting} className="dark:bg-slate-700 dark:border-slate-600" />
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <Button type="button" variant="outline" onClick={() => { setShowResetModal(false); setFormMessage(null); }} disabled={submitting}>Cancel</Button>
+                                    <Button type="submit" disabled={submitting || newPassword.length < 8} className="bg-teal-600 hover:bg-teal-700">
+                                        {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Resetting...</> : "Reset Password"}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             {/* Search */}
             <Card className="dark:bg-slate-800 dark:border-slate-700">
                 <CardContent className="p-4">
@@ -246,16 +459,34 @@ export default function RegistryUsersPage() {
                                                 {user.profile_data?.name || "Registry User"}
                                             </h3>
                                             <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
-                                            {user.profile_data?.registry_name && (
-                                                <p className="text-xs text-slate-400 dark:text-slate-500">{user.profile_data.registry_name}</p>
+                                            {(user.profile_data?.organization || user.profile_data?.registry_name) && (
+                                                <p className="text-xs text-slate-400 dark:text-slate-500">{user.profile_data.organization || user.profile_data.registry_name}</p>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3">
                                         <Badge className={user.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
                                             {user.is_active ? "Active" : "Inactive"}
                                         </Badge>
                                         <Badge className="bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">Registry</Badge>
+                                        <div className="relative">
+                                            <Button variant="ghost" size="icon" onClick={() => setActionMenuOpen(actionMenuOpen === user.id ? null : user.id)}>
+                                                <MoreVertical className="h-5 w-5" />
+                                            </Button>
+                                            {actionMenuOpen === user.id && (
+                                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-md shadow-lg border dark:border-slate-600 z-10">
+                                                    <button onClick={() => handleEdit(user)} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2">
+                                                        <Edit className="h-4 w-4" /> Edit User
+                                                    </button>
+                                                    <button onClick={() => handleResetPassword(user)} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2">
+                                                        <Key className="h-4 w-4" /> Reset Password
+                                                    </button>
+                                                    <button onClick={() => handleDelete(user)} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-600 flex items-center gap-2 text-red-600">
+                                                        <Trash2 className="h-4 w-4" /> Deactivate
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

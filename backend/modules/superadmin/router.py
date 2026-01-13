@@ -165,6 +165,116 @@ def create_vvb_user(
     return {"message": "VVB user created successfully", "vvb_user_id": vvb_user.id, "email": vvb_user.email}
 
 
+@router.get("/vvb-users")
+def get_vvb_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get paginated list of VVB users"""
+    from backend.core.models import UserRole
+    
+    query = db.query(User).filter(User.role == UserRole.VVB)
+    if search:
+        query = query.filter(User.email.ilike(f"%{search}%"))
+    
+    total = query.count()
+    users = query.offset((page - 1) * page_size).limit(page_size).all()
+    
+    return {
+        "items": [{"id": u.id, "email": u.email, "is_active": u.is_active, "is_verified": u.is_verified, "profile_data": u.profile_data, "created_at": str(u.created_at) if u.created_at else None} for u in users],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": math.ceil(total / page_size)
+    }
+
+
+@router.get("/vvb-users/{user_id}")
+def get_vvb_user(
+    user_id: int,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get a single VVB user by ID"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.VVB).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="VVB user not found")
+    
+    return {"id": user.id, "email": user.email, "is_active": user.is_active, "is_verified": user.is_verified, "profile_data": user.profile_data, "created_at": str(user.created_at) if user.created_at else None}
+
+
+@router.put("/vvb-users/{user_id}")
+def update_vvb_user(
+    user_id: int,
+    update_data: UserUpdate,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update a VVB user"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.VVB).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="VVB user not found")
+    
+    if update_data.email:
+        user.email = update_data.email
+    if update_data.is_active is not None:
+        user.is_active = update_data.is_active
+    if update_data.is_verified is not None:
+        user.is_verified = update_data.is_verified
+    if update_data.profile_data:
+        user.profile_data = {**user.profile_data, **update_data.profile_data}
+    
+    db.commit()
+    return {"message": "VVB user updated successfully", "user_id": user_id}
+
+
+@router.delete("/vvb-users/{user_id}")
+def delete_vvb_user(
+    user_id: int,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Delete/deactivate a VVB user"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.VVB).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="VVB user not found")
+    
+    user.is_active = False
+    db.commit()
+    return {"message": "VVB user deactivated successfully"}
+
+
+@router.post("/vvb-users/{user_id}/reset-password")
+def reset_vvb_password(
+    user_id: int,
+    new_password: str = Query(..., min_length=8),
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Reset password for a VVB user"""
+    from passlib.context import CryptContext
+    from backend.core.models import UserRole
+    
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.VVB).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="VVB user not found")
+    
+    user.password_hash = pwd_context.hash(new_password)
+    db.commit()
+    return {"message": "Password reset successfully", "user_id": user_id}
+
+
 @router.post("/registry-users")
 def create_registry_user(
     registry_data: AdminCreate,
@@ -198,6 +308,116 @@ def create_registry_user(
     db.refresh(registry_user)
     
     return {"message": "Registry user created successfully", "registry_user_id": registry_user.id, "email": registry_user.email}
+
+
+@router.get("/registry-users")
+def get_registry_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get paginated list of Registry users"""
+    from backend.core.models import UserRole
+    
+    query = db.query(User).filter(User.role == UserRole.REGISTRY)
+    if search:
+        query = query.filter(User.email.ilike(f"%{search}%"))
+    
+    total = query.count()
+    users = query.offset((page - 1) * page_size).limit(page_size).all()
+    
+    return {
+        "items": [{"id": u.id, "email": u.email, "is_active": u.is_active, "is_verified": u.is_verified, "profile_data": u.profile_data, "created_at": str(u.created_at) if u.created_at else None} for u in users],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": math.ceil(total / page_size)
+    }
+
+
+@router.get("/registry-users/{user_id}")
+def get_registry_user(
+    user_id: int,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get a single Registry user by ID"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.REGISTRY).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Registry user not found")
+    
+    return {"id": user.id, "email": user.email, "is_active": user.is_active, "is_verified": user.is_verified, "profile_data": user.profile_data, "created_at": str(user.created_at) if user.created_at else None}
+
+
+@router.put("/registry-users/{user_id}")
+def update_registry_user(
+    user_id: int,
+    update_data: UserUpdate,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update a Registry user"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.REGISTRY).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Registry user not found")
+    
+    if update_data.email:
+        user.email = update_data.email
+    if update_data.is_active is not None:
+        user.is_active = update_data.is_active
+    if update_data.is_verified is not None:
+        user.is_verified = update_data.is_verified
+    if update_data.profile_data:
+        user.profile_data = {**user.profile_data, **update_data.profile_data}
+    
+    db.commit()
+    return {"message": "Registry user updated successfully", "user_id": user_id}
+
+
+@router.delete("/registry-users/{user_id}")
+def delete_registry_user(
+    user_id: int,
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Delete/deactivate a Registry user"""
+    from backend.core.models import UserRole
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.REGISTRY).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Registry user not found")
+    
+    user.is_active = False
+    db.commit()
+    return {"message": "Registry user deactivated successfully"}
+
+
+@router.post("/registry-users/{user_id}/reset-password")
+def reset_registry_password(
+    user_id: int,
+    new_password: str = Query(..., min_length=8),
+    admin: User = Depends(get_current_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Reset password for a Registry user"""
+    from passlib.context import CryptContext
+    from backend.core.models import UserRole
+    
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    user = db.query(User).filter(User.id == user_id, User.role == UserRole.REGISTRY).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Registry user not found")
+    
+    user.password_hash = pwd_context.hash(new_password)
+    db.commit()
+    return {"message": "Password reset successfully", "user_id": user_id}
 
 
 # ===== Project Management =====
