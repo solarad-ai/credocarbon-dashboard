@@ -59,6 +59,8 @@ jobs:
           credentials_json: ${{ secrets.GCP_PROD_AUTH }}
 
       - name: Deploy Backend to Cloud Run
+        env:
+          CORS_VALUE: "http://localhost:3000,http://127.0.0.1:3000,https://credocarbon-web-641001192587.asia-south2.run.app,https://dashboard.credocarbon.com"
         run: |
           gcloud run deploy credocarbon-api \
             --project ${{ env.DEPLOY_PROJECT_ID }} \
@@ -67,5 +69,8 @@ jobs:
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
             --port 8080 \
-            --set-env-vars "ENV=prod,CLOUD_PROVIDER=gcp,DATABASE_URL=${{ secrets.DATABASE_URL }},SECRET_KEY=${{ secrets.SECRET_KEY }}" \
-            --set-env-vars "^;^CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://credocarbon-web-641001192587.asia-south2.run.app,https://dashboard.credocarbon.com"
+            --update-env-vars "ENV=prod" \
+            --update-env-vars "CLOUD_PROVIDER=gcp" \
+            --update-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --update-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+            --update-env-vars "CORS_ORIGINS=${CORS_VALUE}"

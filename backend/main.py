@@ -115,6 +115,7 @@ def health_check():
         "status": "ok",
         "env": settings.env,
         "cloud_provider": settings.cloud.provider,
+        "cors_origins": settings.cors_origins_list,
     }
 
 
