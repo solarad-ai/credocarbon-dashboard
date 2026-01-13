@@ -39,9 +39,14 @@ from .services.credit_calculator import CreditCalculator
 
 router = APIRouter(prefix="/generation", tags=["Generation Data"])
 
-# File upload directory
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "generation")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# File upload directory - use /tmp for Cloud Run compatibility
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/tmp/uploads/generation")
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except PermissionError:
+    # Fallback for restricted environments
+    UPLOAD_DIR = "/tmp/uploads/generation"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # ============ File Upload Endpoints ============
