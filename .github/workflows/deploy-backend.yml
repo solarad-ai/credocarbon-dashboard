@@ -1,0 +1,72 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+      - gcp-dev
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  CICD_PROJECT_ID: 'prj-cicd-solarad'
+  DEPLOY_PROJECT_ID: 'prj-prod-solarad-7a'
+  REGION: 'asia-south2'
+  ARTIFACT_REPO: 'asia-south2-docker.pkg.dev/prj-cicd-solarad/repo-solarad-cicd-as2-01'
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Auth for CI/CD (build and push)
+      - name: Auth for CI/CD
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.CICD_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CICD_AUTH }}
+
+      - name: Set Environment Variables
+        run: |
+          echo "GIT_COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "BUILD_ID=${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build Backend Docker image
+        run: |
+          docker build -f backend/Dockerfile \
+            --build-context backend=./backend \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:prod-${{ env.BUILD_ID }} \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:${{ env.GIT_COMMIT_SHORT }} \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:latest \
+            ./backend
+
+      - name: Push Backend image
+        run: |
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:prod-${{ env.BUILD_ID }}
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:${{ env.GIT_COMMIT_SHORT }}
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:latest
+
+      # Auth for PROD (deploy)
+      - name: Auth for Deployment
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.DEPLOY_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_PROD_AUTH }}
+
+      - name: Deploy Backend to Cloud Run
+        run: |
+          gcloud run deploy credocarbon-api \
+            --project ${{ env.DEPLOY_PROJECT_ID }} \
+            --image ${{ env.ARTIFACT_REPO }}/prod/credocarbon-api:latest \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --set-env-vars "ENV=prod,CLOUD_PROVIDER=gcp,DATABASE_URL=${{ secrets.DATABASE_URL }},SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+            --set-env-vars "^;^CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://credocarbon-web-641001192587.asia-south2.run.app,https://dashboard.credocarbon.com"

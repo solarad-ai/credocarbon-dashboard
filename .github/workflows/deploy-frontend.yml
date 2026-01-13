@@ -1,0 +1,72 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+      - gcp-dev
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  CICD_PROJECT_ID: 'prj-cicd-solarad'
+  DEPLOY_PROJECT_ID: 'prj-prod-solarad-7a'
+  REGION: 'asia-south2'
+  ARTIFACT_REPO: 'asia-south2-docker.pkg.dev/prj-cicd-solarad/repo-solarad-cicd-as2-01'
+  API_URL: 'https://credocarbon-api-641001192587.asia-south2.run.app/api'
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Auth for CI/CD (build and push)
+      - name: Auth for CI/CD
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.CICD_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_CICD_AUTH }}
+
+      - name: Set Environment Variables
+        run: |
+          echo "GIT_COMMIT_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "BUILD_ID=${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build Frontend Docker image
+        run: |
+          echo "Building with API URL: ${{ env.API_URL }}"
+          docker build -f frontend/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL="${{ env.API_URL }}" \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:prod-${{ env.BUILD_ID }} \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:${{ env.GIT_COMMIT_SHORT }} \
+            -t ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:latest \
+            ./frontend
+
+      - name: Push Frontend image
+        run: |
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:prod-${{ env.BUILD_ID }}
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:${{ env.GIT_COMMIT_SHORT }}
+          docker push ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:latest
+
+      # Auth for PROD (deploy)
+      - name: Auth for Deployment
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.DEPLOY_PROJECT_ID }}
+          credentials_json: ${{ secrets.GCP_PROD_AUTH }}
+
+      - name: Deploy Frontend to Cloud Run
+        run: |
+          gcloud run deploy credocarbon-web \
+            --project ${{ env.DEPLOY_PROJECT_ID }} \
+            --image ${{ env.ARTIFACT_REPO }}/prod/credocarbon-web:latest \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 3000
