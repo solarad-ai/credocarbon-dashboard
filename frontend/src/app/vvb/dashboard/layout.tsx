@@ -15,10 +15,13 @@ import {
     LogOut,
     Menu,
     X,
+    PanelLeftClose,
+    PanelLeft,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NavItem {
     label: string;
@@ -45,11 +48,17 @@ export default function VVBDashboardLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
+        // Load collapsed state from localStorage
+        const savedCollapsed = localStorage.getItem("vvbSidebarCollapsed");
+        if (savedCollapsed) {
+            setSidebarCollapsed(JSON.parse(savedCollapsed));
+        }
         // Check authentication
         const token = localStorage.getItem("access_token");
         const userData = localStorage.getItem("user");
@@ -78,6 +87,12 @@ export default function VVBDashboardLayout({
         router.replace("/vvb/login");
     };
 
+    const toggleSidebarCollapse = () => {
+        const newState = !sidebarCollapsed;
+        setSidebarCollapsed(newState);
+        localStorage.setItem("vvbSidebarCollapsed", JSON.stringify(newState));
+    };
+
     if (!mounted || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -96,10 +111,83 @@ export default function VVBDashboardLayout({
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Desktop Sidebar */}
+            <TooltipProvider delayDuration={0}>
+                <aside
+                    className={`hidden lg:block fixed top-0 left-0 h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 z-50 transition-all duration-300 ${sidebarCollapsed ? "w-20" : "w-64"}`}
+                >
+                    {/* Logo */}
+                    <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+                        <Link href="/vvb/dashboard" className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                                <ClipboardCheck className="h-5 w-5 text-white" />
+                            </div>
+                            {!sidebarCollapsed && <span className="font-bold text-lg text-slate-900 dark:text-white">VVB Portal</span>}
+                        </Link>
+                    </div>
+
+                    {/* Navigation */}
+                    <nav className={`p-2 space-y-1 overflow-y-auto h-[calc(100%-10rem)] ${sidebarCollapsed ? "px-2" : "px-4"}`}>
+                        {navItems.map((item) => {
+                            const isActive = pathname === item.href || (item.href !== "/vvb/dashboard" && pathname.startsWith(item.href));
+                            const navLink = (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`flex items-center gap-3 rounded-lg transition-all duration-200 ${sidebarCollapsed ? "justify-center px-3 py-3" : "px-3 py-2.5"} ${isActive
+                                        ? "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400"
+                                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                        }`}
+                                >
+                                    {item.icon}
+                                    {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
+                                </Link>
+                            );
+
+                            if (sidebarCollapsed) {
+                                return (
+                                    <Tooltip key={item.href}>
+                                        <TooltipTrigger asChild>{navLink}</TooltipTrigger>
+                                        <TooltipContent side="right">{item.label}</TooltipContent>
+                                    </Tooltip>
+                                );
+                            }
+                            return navLink;
+                        })}
+                    </nav>
+
+                    {/* Collapse Toggle & Logout */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                        <Button
+                            variant="ghost"
+                            className={`w-full text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg ${sidebarCollapsed ? "justify-center px-0" : "justify-start gap-3"}`}
+                            onClick={toggleSidebarCollapse}
+                        >
+                            {sidebarCollapsed ? <PanelLeft className="h-5 w-5" /> : (
+                                <><PanelLeftClose className="h-5 w-5" /><span className="text-sm font-medium">Collapse</span></>
+                            )}
+                        </Button>
+                        {sidebarCollapsed ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={handleLogout}>
+                                        <LogOut className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">Logout</TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <Button variant="ghost" className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={handleLogout}>
+                                <LogOut className="h-5 w-5" /><span>Logout</span>
+                            </Button>
+                        )}
+                    </div>
+                </aside>
+            </TooltipProvider>
+
+            {/* Mobile Sidebar */}
             <aside
-                className={`fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 z-50 transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                    }`}
+                className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 z-50 transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
             >
                 {/* Logo */}
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700">
@@ -109,10 +197,7 @@ export default function VVBDashboardLayout({
                         </div>
                         <span className="font-bold text-lg text-slate-900 dark:text-white">VVB Portal</span>
                     </Link>
-                    <button
-                        className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                        onClick={() => setSidebarOpen(false)}
-                    >
+                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" onClick={() => setSidebarOpen(false)}>
                         <X className="h-5 w-5 text-slate-500" />
                     </button>
                 </div>
@@ -120,8 +205,7 @@ export default function VVBDashboardLayout({
                 {/* Navigation */}
                 <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100%-8rem)]">
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href ||
-                            (item.href !== "/vvb/dashboard" && pathname.startsWith(item.href));
+                        const isActive = pathname === item.href || (item.href !== "/vvb/dashboard" && pathname.startsWith(item.href));
                         return (
                             <Link
                                 key={item.href}
@@ -141,19 +225,14 @@ export default function VVBDashboardLayout({
 
                 {/* Logout Button */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 dark:border-slate-700">
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        onClick={handleLogout}
-                    >
-                        <LogOut className="h-5 w-5" />
-                        <span>Logout</span>
+                    <Button variant="ghost" className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={handleLogout}>
+                        <LogOut className="h-5 w-5" /><span>Logout</span>
                     </Button>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <div className="lg:pl-64">
+            <div className={`transition-all duration-300 ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
                 {/* Header */}
                 <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
                     <button

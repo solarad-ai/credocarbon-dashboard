@@ -99,7 +99,7 @@ export function UpgradeCTA({ feature, currentTier }: UpgradeCTAProps) {
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-3">
                 Your current tier: <span className="font-medium">{tierName}</span>
             </p>
-            <Link href="/contact">
+            <Link href="/pricing">
                 <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
                     <Crown className="h-4 w-4 mr-1" />
                     Upgrade Plan
