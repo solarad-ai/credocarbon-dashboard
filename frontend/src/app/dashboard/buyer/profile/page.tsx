@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
     ArrowLeft, User, Building2, Shield, Key, Bell, Save, Upload, Check,
-    AlertCircle, ChevronDown, ChevronUp, Loader2, Eye, EyeOff, Camera, Trash2
+    AlertCircle, ChevronDown, ChevronUp, Loader2, Eye, EyeOff, Camera, Trash2,
+    ZoomIn, ZoomOut, RotateCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,17 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
+
+// Available avatars
+const avatars = [
+    { id: 1, src: "/avatars/avatar-1.png", name: "Avatar 1" },
+    { id: 2, src: "/avatars/avatar-2.png", name: "Avatar 2" },
+    { id: 3, src: "/avatars/avatar-3.png", name: "Avatar 3" },
+    { id: 4, src: "/avatars/avatar-4.png", name: "Avatar 4" },
+];
 
 interface CollapsibleSectionProps {
     title: string;
@@ -62,6 +73,13 @@ function ProfileContent() {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+    // Photo dialog states
+    const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+    const [tempPhoto, setTempPhoto] = useState<string | null>(null);
+    const [photoScale, setPhotoScale] = useState(1);
+    const [photoRotation, setPhotoRotation] = useState(0);
+    const [photoDialogTab, setPhotoDialogTab] = useState<"upload" | "avatar">("upload");
 
     const [profileData, setProfileData] = useState({
         fullName: "",
@@ -170,7 +188,7 @@ function ProfileContent() {
         }
     };
 
-    // Photo upload handler
+    // Photo upload handler - opens dialog instead of saving immediately
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -182,38 +200,94 @@ function ProfileContent() {
                 alert("Please select an image file");
                 return;
             }
-
             const reader = new FileReader();
-            reader.onload = async (event) => {
-                const photoData = event.target?.result as string;
-                setProfilePhoto(photoData);
-
-                // Save immediately to backend
-                const token = localStorage.getItem("token");
-                try {
-                    const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ profilePhoto: photoData }),
-                    });
-
-                    if (response.ok) {
-                        const updatedUser = await response.json();
-                        localStorage.setItem("user", JSON.stringify(updatedUser));
-                        window.dispatchEvent(new Event("profileUpdated"));
-                    }
-                } catch (error) {
-                    console.error("Error saving photo:", error);
-                }
+            reader.onload = (event) => {
+                setTempPhoto(event.target?.result as string);
+                setPhotoScale(1);
+                setPhotoRotation(0);
             };
             reader.readAsDataURL(file);
         }
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
+    };
+
+    // Save photo with transformations
+    const handleSavePhoto = async () => {
+        if (!tempPhoto) {
+            setShowPhotoDialog(false);
+            return;
+        }
+
+        const isAvatar = tempPhoto.startsWith("/avatars/");
+        let finalImage = tempPhoto;
+
+        if (isAvatar) {
+            setProfilePhoto(tempPhoto);
+        } else {
+            // Apply transformations with canvas
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const img = new Image();
+
+            await new Promise<void>((resolve) => {
+                img.onload = () => {
+                    const size = 200;
+                    canvas.width = size;
+                    canvas.height = size;
+
+                    if (ctx) {
+                        ctx.clearRect(0, 0, size, size);
+                        ctx.save();
+                        ctx.translate(size / 2, size / 2);
+                        ctx.rotate((photoRotation * Math.PI) / 180);
+
+                        const scale = Math.max(size / img.width, size / img.height) * photoScale;
+                        const scaledWidth = img.width * scale;
+                        const scaledHeight = img.height * scale;
+
+                        ctx.drawImage(
+                            img,
+                            -scaledWidth / 2,
+                            -scaledHeight / 2,
+                            scaledWidth,
+                            scaledHeight
+                        );
+                        ctx.restore();
+
+                        finalImage = canvas.toDataURL("image/jpeg", 0.9);
+                        setProfilePhoto(finalImage);
+                    }
+                    resolve();
+                };
+                img.src = tempPhoto;
+            });
+        }
+
+        // Save to backend
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch("https://credocarbon-api-641001192587.asia-south2.run.app/api/auth/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({ profilePhoto: finalImage }),
+            });
+
+            if (response.ok) {
+                const updatedUser = await response.json();
+                localStorage.setItem("user", JSON.stringify(updatedUser));
+                window.dispatchEvent(new Event("profileUpdated"));
+            }
+        } catch (error) {
+            console.error("Error saving photo:", error);
+        }
+
+        setShowPhotoDialog(false);
+        setTempPhoto(null);
     };
 
     const handleRemovePhoto = async () => {
@@ -315,16 +389,38 @@ function ProfileContent() {
                                             </div>
                                             <div
                                                 className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                                                onClick={() => fileInputRef.current?.click()}
+                                                onClick={() => {
+                                                    setPhotoDialogTab("upload");
+                                                    setShowPhotoDialog(true);
+                                                }}
                                             >
                                                 <Camera className="h-6 w-6 text-white" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex flex-wrap gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setPhotoDialogTab("upload");
+                                                        setTempPhoto(null);
+                                                        setShowPhotoDialog(true);
+                                                    }}
+                                                >
                                                     <Upload className="mr-2 h-4 w-4" />
                                                     Upload Photo
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setPhotoDialogTab("avatar");
+                                                        setShowPhotoDialog(true);
+                                                    }}
+                                                >
+                                                    <User className="mr-2 h-4 w-4" />
+                                                    Choose Avatar
                                                 </Button>
                                                 {profilePhoto && (
                                                     <Button
@@ -491,6 +587,159 @@ function ProfileContent() {
                     </Tabs>
                 </div>
             </main>
+
+            {/* Photo Upload Dialog */}
+            <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Update Profile Photo</DialogTitle>
+                    </DialogHeader>
+
+                    <Tabs value={photoDialogTab} onValueChange={(v) => setPhotoDialogTab(v as any)}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="upload">Upload Photo</TabsTrigger>
+                            <TabsTrigger value="avatar">Choose Avatar</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="upload" className="space-y-4">
+                            {!tempPhoto ? (
+                                <div
+                                    className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-ocean-500 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+                                    <p className="text-sm text-slate-500">Click to upload a photo</p>
+                                    <p className="text-xs text-slate-400 mt-1">JPG or PNG, max 2MB</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Preview */}
+                                    <div className="flex justify-center">
+                                        <div
+                                            className="w-40 h-40 rounded-full overflow-hidden border-4 border-ocean-500/30"
+                                            style={{
+                                                transform: `scale(${photoScale}) rotate(${photoRotation}deg)`,
+                                            }}
+                                        >
+                                            <img
+                                                src={tempPhoto}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Controls */}
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm">Zoom</Label>
+                                                <span className="text-sm text-slate-500">{(photoScale * 100).toFixed(0)}%</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <ZoomOut className="h-4 w-4 text-slate-400" />
+                                                <Slider
+                                                    value={[photoScale]}
+                                                    min={0.5}
+                                                    max={2}
+                                                    step={0.1}
+                                                    onValueChange={(value) => setPhotoScale(value[0])}
+                                                    className="flex-1"
+                                                />
+                                                <ZoomIn className="h-4 w-4 text-slate-400" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-sm">Rotate</Label>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setPhotoRotation((prev) => (prev - 90 + 360) % 360)}
+                                                >
+                                                    <RotateCw className="h-4 w-4 rotate-180" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setPhotoRotation((prev) => (prev + 90) % 360)}
+                                                >
+                                                    <RotateCw className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Choose Different Photo
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="avatar" className="space-y-4">
+                            <p className="text-sm text-slate-500 text-center">
+                                Select a professional avatar
+                            </p>
+                            <div className="grid grid-cols-4 gap-4">
+                                {avatars.map((avatar) => (
+                                    <button
+                                        key={avatar.id}
+                                        className={cn(
+                                            "relative rounded-full overflow-hidden border-4 transition-all hover:scale-105",
+                                            tempPhoto === avatar.src
+                                                ? "border-ocean-500 ring-2 ring-ocean-500 ring-offset-2"
+                                                : "border-transparent hover:border-ocean-500/50"
+                                        )}
+                                        onClick={() => {
+                                            setTempPhoto(avatar.src);
+                                            setPhotoScale(1);
+                                            setPhotoRotation(0);
+                                        }}
+                                    >
+                                        <img
+                                            src={avatar.src}
+                                            alt={avatar.name}
+                                            className="w-full aspect-square object-cover"
+                                        />
+                                        {tempPhoto === avatar.src && (
+                                            <div className="absolute inset-0 bg-ocean-500/20 flex items-center justify-center">
+                                                <Check className="h-6 w-6 text-ocean-600" />
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowPhotoDialog(false);
+                                setTempPhoto(null);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSavePhoto}
+                            disabled={!tempPhoto}
+                            className="bg-ocean-600 hover:bg-ocean-700"
+                        >
+                            <Check className="mr-2 h-4 w-4" />
+                            Save Photo
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
