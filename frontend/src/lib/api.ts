@@ -1265,3 +1265,207 @@ export const adminApi = {
         return adminRequest<any>(`/admin/transactions?${searchParams.toString()}`);
     },
 };
+
+// ============ VVB API ============
+
+export const vvbApi = {
+    // Profile
+    getProfile: async (): Promise<any> => {
+        return apiRequest<any>('/vvb/profile');
+    },
+
+    updateProfile: async (data: {
+        name?: string;
+        organization?: string;
+        phone?: string;
+        accreditation_id?: string;
+        certifications?: string[];
+        profile_photo?: string;
+        notification_preferences?: Record<string, boolean>;
+    }): Promise<any> => {
+        return apiRequest<any>('/vvb/profile', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    changePassword: async (data: { current_password: string; new_password: string }): Promise<any> => {
+        return apiRequest<any>('/vvb/profile/password', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Dashboard
+    getDashboardStats: async (): Promise<any> => {
+        return apiRequest<any>('/vvb/dashboard/stats');
+    },
+
+    getProjects: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/vvb/dashboard/projects');
+    },
+
+    // Validations
+    getValidations: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/vvb/validations');
+    },
+
+    getValidation: async (taskId: number): Promise<any> => {
+        return apiRequest<any>(`/vvb/validations/${taskId}`);
+    },
+
+    updateValidation: async (taskId: number, data: any): Promise<any> => {
+        return apiRequest<any>(`/vvb/validations/${taskId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Verifications
+    getVerifications: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/vvb/verifications');
+    },
+
+    getVerification: async (taskId: number): Promise<any> => {
+        return apiRequest<any>(`/vvb/verifications/${taskId}`);
+    },
+
+    updateVerification: async (taskId: number, data: any): Promise<any> => {
+        return apiRequest<any>(`/vvb/verifications/${taskId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Queries
+    getQueries: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/vvb/queries');
+    },
+
+    createQuery: async (data: any): Promise<any> => {
+        return apiRequest<any>('/vvb/queries', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    resolveQuery: async (queryId: number): Promise<any> => {
+        return apiRequest<any>(`/vvb/queries/${queryId}/resolve`, {
+            method: 'PUT',
+        });
+    },
+};
+
+// ============ REGISTRY API ============
+
+export const registryApi = {
+    // Profile
+    getProfile: async (): Promise<any> => {
+        return apiRequest<any>('/registry/profile');
+    },
+
+    updateProfile: async (data: {
+        name?: string;
+        organization?: string;
+        phone?: string;
+        registry_name?: string;
+        jurisdiction?: string;
+        profile_photo?: string;
+        notification_preferences?: Record<string, boolean>;
+    }): Promise<any> => {
+        return apiRequest<any>('/registry/profile', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    changePassword: async (data: { current_password: string; new_password: string }): Promise<any> => {
+        return apiRequest<any>('/registry/profile/password', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Dashboard
+    getDashboardStats: async (): Promise<any> => {
+        return apiRequest<any>('/registry/dashboard/stats');
+    },
+
+    getProjects: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/registry/dashboard/projects');
+    },
+
+    // Reviews
+    getReviews: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/registry/reviews');
+    },
+
+    getReview: async (reviewId: number): Promise<any> => {
+        return apiRequest<any>(`/registry/reviews/${reviewId}`);
+    },
+
+    updateReview: async (reviewId: number, data: any): Promise<any> => {
+        return apiRequest<any>(`/registry/reviews/${reviewId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    // Issuances
+    getIssuances: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/registry/issuances');
+    },
+
+    getIssuance: async (issuanceId: number): Promise<any> => {
+        return apiRequest<any>(`/registry/issuances/${issuanceId}`);
+    },
+
+    createIssuance: async (data: any): Promise<any> => {
+        return apiRequest<any>('/registry/issuances', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    processIssuance: async (issuanceId: number, registryReferenceId: string, certificateUrl?: string): Promise<any> => {
+        const params = new URLSearchParams();
+        params.append('registry_reference_id', registryReferenceId);
+        if (certificateUrl) params.append('certificate_url', certificateUrl);
+        return apiRequest<any>(`/registry/issuances/${issuanceId}/process?${params.toString()}`, {
+            method: 'POST',
+        });
+    },
+
+    rejectIssuance: async (issuanceId: number): Promise<any> => {
+        return apiRequest<any>(`/registry/issuances/${issuanceId}/reject`, {
+            method: 'POST',
+        });
+    },
+
+    // Credits
+    getCredits: async (): Promise<any[]> => {
+        return apiRequest<any[]>('/registry/credits');
+    },
+
+    getCredit: async (batchId: number): Promise<any> => {
+        return apiRequest<any>(`/registry/credits/${batchId}`);
+    },
+
+    // Queries
+    getReviewQueries: async (reviewId: number): Promise<any[]> => {
+        return apiRequest<any[]>(`/registry/reviews/${reviewId}/queries`);
+    },
+
+    createQuery: async (data: any): Promise<any> => {
+        return apiRequest<any>('/registry/queries', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    resolveQuery: async (queryId: number): Promise<any> => {
+        return apiRequest<any>(`/registry/queries/${queryId}/resolve`, {
+            method: 'PUT',
+        });
+    },
+};

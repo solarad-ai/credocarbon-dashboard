@@ -15,7 +15,8 @@ from backend.modules.registry.schemas import (
     RegistryQueryCreate, RegistryQueryResponse, QueryResponseSubmit,
     IssuanceRequest, IssuanceResponse, IssuanceUpdate,
     CreditBatchResponse,
-    RegistryDashboardStats, RegistryProjectSummary
+    RegistryDashboardStats, RegistryProjectSummary,
+    RegistryProfileResponse, RegistryProfileUpdate, RegistryPasswordChange
 )
 
 router = APIRouter(prefix="/registry", tags=["registry"])
@@ -269,3 +270,105 @@ def get_credit_batch(
     if not batch:
         raise HTTPException(status_code=404, detail="Credit batch not found")
     return batch
+
+
+# ===== Profile Endpoints =====
+
+@router.get("/profile", response_model=RegistryProfileResponse)
+def get_registry_profile(
+    current_user: User = Depends(require_registry_user)
+):
+    """Get current Registry user's profile"""
+    profile_data = current_user.profile_data or {}
+    return RegistryProfileResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role),
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+        name=profile_data.get("name"),
+        organization=profile_data.get("organization"),
+        phone=profile_data.get("phone"),
+        registry_name=profile_data.get("registry_name"),
+        jurisdiction=profile_data.get("jurisdiction"),
+        profile_photo=profile_data.get("profilePhoto") or profile_data.get("profile_photo"),
+        notification_preferences=profile_data.get("notification_preferences")
+    )
+
+
+@router.put("/profile", response_model=RegistryProfileResponse)
+def update_registry_profile(
+    update_data: RegistryProfileUpdate,
+    current_user: User = Depends(require_registry_user),
+    db: Session = Depends(get_db)
+):
+    """Update Registry user's profile"""
+    profile_data = current_user.profile_data or {}
+    
+    # Update fields if provided
+    if update_data.name is not None:
+        profile_data["name"] = update_data.name
+    if update_data.organization is not None:
+        profile_data["organization"] = update_data.organization
+    if update_data.phone is not None:
+        profile_data["phone"] = update_data.phone
+    if update_data.registry_name is not None:
+        profile_data["registry_name"] = update_data.registry_name
+    if update_data.jurisdiction is not None:
+        profile_data["jurisdiction"] = update_data.jurisdiction
+    if update_data.profile_photo is not None:
+        profile_data["profilePhoto"] = update_data.profile_photo
+    if update_data.notification_preferences is not None:
+        profile_data["notification_preferences"] = update_data.notification_preferences
+    
+    current_user.profile_data = profile_data
+    db.commit()
+    db.refresh(current_user)
+    
+    return RegistryProfileResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role),
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+        name=profile_data.get("name"),
+        organization=profile_data.get("organization"),
+        phone=profile_data.get("phone"),
+        registry_name=profile_data.get("registry_name"),
+        jurisdiction=profile_data.get("jurisdiction"),
+        profile_photo=profile_data.get("profilePhoto"),
+        notification_preferences=profile_data.get("notification_preferences")
+    )
+
+
+@router.put("/profile/password")
+def change_registry_password(
+    password_data: RegistryPasswordChange,
+    current_user: User = Depends(require_registry_user),
+    db: Session = Depends(get_db)
+):
+    """Change Registry user's password"""
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    # Verify current password
+    if not pwd_context.verify(password_data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Validate new password
+    if len(password_data.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters"
+        )
+    
+    # Hash and save new password
+    current_user.password_hash = pwd_context.hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}

@@ -207,3 +207,39 @@ class VVBProjectSummary(BaseModel):
     task_status: str
     assigned_at: datetime
     open_queries: int
+
+
+# ===== Profile Schemas =====
+
+class VVBProfileResponse(BaseModel):
+    id: int
+    email: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    created_at: Optional[datetime]
+    name: Optional[str] = None
+    organization: Optional[str] = None
+    phone: Optional[str] = None
+    accreditation_id: Optional[str] = None
+    certifications: Optional[List[str]] = None
+    profile_photo: Optional[str] = None
+    notification_preferences: Optional[Dict[str, bool]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class VVBProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    organization: Optional[str] = None
+    phone: Optional[str] = None
+    accreditation_id: Optional[str] = None
+    certifications: Optional[List[str]] = None
+    profile_photo: Optional[str] = None
+    notification_preferences: Optional[Dict[str, bool]] = None
+
+
+class VVBPasswordChange(BaseModel):
+    current_password: str
+    new_password: str

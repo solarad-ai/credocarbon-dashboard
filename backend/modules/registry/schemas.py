@@ -206,3 +206,39 @@ class RegistryProjectSummary(BaseModel):
     submitted_at: datetime
     open_queries: int
     has_pending_issuance: bool
+
+
+# ===== Profile Schemas =====
+
+class RegistryProfileResponse(BaseModel):
+    id: int
+    email: str
+    role: str
+    is_active: bool
+    is_verified: bool
+    created_at: Optional[datetime]
+    name: Optional[str] = None
+    organization: Optional[str] = None
+    phone: Optional[str] = None
+    registry_name: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    profile_photo: Optional[str] = None
+    notification_preferences: Optional[Dict[str, bool]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RegistryProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    organization: Optional[str] = None
+    phone: Optional[str] = None
+    registry_name: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    profile_photo: Optional[str] = None
+    notification_preferences: Optional[Dict[str, bool]] = None
+
+
+class RegistryPasswordChange(BaseModel):
+    current_password: str
+    new_password: str

@@ -1,63 +1,84 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Mail, Building2, Shield, Key, Save } from "lucide-react";
+import { User, Building2, Shield, Key, Save, Phone, Award, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { vvbApi } from "@/lib/api";
 
-interface UserProfile {
+interface VVBProfile {
     id: number;
     email: string;
-    name: string;
-    organization: string;
     role: string;
+    is_active: boolean;
     is_verified: boolean;
     created_at: string;
+    name: string | null;
+    organization: string | null;
+    phone: string | null;
+    accreditation_id: string | null;
+    certifications: string[] | null;
+    profile_photo: string | null;
 }
 
 export default function VVBProfilePage() {
-    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [profile, setProfile] = useState<VVBProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [passwordError, setPasswordError] = useState("");
+    const [passwordSuccess, setPasswordSuccess] = useState("");
 
     // Form state
     const [name, setName] = useState("");
     const [organization, setOrganization] = useState("");
+    const [phone, setPhone] = useState("");
+    const [accreditationId, setAccreditationId] = useState("");
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
     useEffect(() => {
-        // Load profile from localStorage
-        const userData = localStorage.getItem("user");
-        if (userData) {
-            try {
-                const parsed = JSON.parse(userData);
-                setProfile({
-                    id: parsed.id,
-                    email: parsed.email,
-                    name: parsed.profile_data?.name || parsed.name || "",
-                    organization: parsed.profile_data?.organization || "",
-                    role: parsed.role,
-                    is_verified: parsed.is_verified || true,
-                    created_at: parsed.created_at || new Date().toISOString(),
-                });
-                setName(parsed.profile_data?.name || parsed.name || "");
-                setOrganization(parsed.profile_data?.organization || "");
-            } catch (err) {
-                console.error("Failed to parse user data");
-            }
-        }
-        setLoading(false);
+        loadProfile();
     }, []);
+
+    const loadProfile = async () => {
+        try {
+            setLoading(true);
+            const data = await vvbApi.getProfile();
+            setProfile(data);
+            setName(data.name || "");
+            setOrganization(data.organization || "");
+            setPhone(data.phone || "");
+            setAccreditationId(data.accreditation_id || "");
+        } catch (err: any) {
+            console.error("Failed to load profile:", err);
+            setError("Failed to load profile. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSaveProfile = async () => {
         setSaving(true);
+        setError("");
+        setSuccess("");
         try {
-            // Update localStorage
+            const updatedProfile = await vvbApi.updateProfile({
+                name,
+                organization,
+                phone,
+                accreditation_id: accreditationId,
+            });
+            setProfile(updatedProfile);
+            setSuccess("Profile updated successfully!");
+
+            // Update localStorage cache
             const userData = localStorage.getItem("user");
             if (userData) {
                 const parsed = JSON.parse(userData);
@@ -65,38 +86,55 @@ export default function VVBProfilePage() {
                     ...parsed.profile_data,
                     name,
                     organization,
+                    phone,
+                    accreditation_id: accreditationId,
                 };
-                parsed.name = name;
                 localStorage.setItem("user", JSON.stringify(parsed));
-                setProfile((prev) => prev ? { ...prev, name, organization } : null);
-                alert("Profile updated successfully!");
             }
-        } catch (err) {
-            alert("Failed to save profile");
+        } catch (err: any) {
+            setError(err.message || "Failed to save profile");
         } finally {
             setSaving(false);
         }
     };
 
     const handleChangePassword = async () => {
+        setPasswordError("");
+        setPasswordSuccess("");
+
         if (newPassword !== confirmPassword) {
-            alert("Passwords do not match");
+            setPasswordError("Passwords do not match");
             return;
         }
         if (newPassword.length < 8) {
-            alert("Password must be at least 8 characters");
+            setPasswordError("Password must be at least 8 characters");
             return;
         }
-        alert("Password change functionality would require backend API integration");
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+
+        setChangingPassword(true);
+        try {
+            await vvbApi.changePassword({
+                current_password: currentPassword,
+                new_password: newPassword,
+            });
+            setPasswordSuccess("Password changed successfully!");
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err: any) {
+            setPasswordError(err.message || "Failed to change password");
+        } finally {
+            setChangingPassword(false);
+        }
     };
 
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
+                    <p className="text-slate-500">Loading profile...</p>
+                </div>
             </div>
         );
     }
@@ -124,19 +162,30 @@ export default function VVBProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-white">
-                                {profile?.name?.charAt(0).toUpperCase() || "V"}
-                            </span>
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden">
+                            {profile?.profile_photo ? (
+                                <img src={profile.profile_photo} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-2xl font-bold text-white">
+                                    {profile?.name?.charAt(0).toUpperCase() || "V"}
+                                </span>
+                            )}
                         </div>
                         <div>
                             <p className="font-semibold text-slate-900 dark:text-white">
                                 {profile?.name || "VVB User"}
                             </p>
                             <p className="text-sm text-slate-500">{profile?.email}</p>
-                            <Badge className="mt-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                                {profile?.role}
-                            </Badge>
+                            <div className="flex gap-2 mt-1">
+                                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                                    {profile?.role}
+                                </Badge>
+                                {profile?.is_verified && (
+                                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                                        ✓ Verified
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </CardContent>
@@ -149,6 +198,19 @@ export default function VVBProfilePage() {
                     <CardDescription>Update your profile information</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {error && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+                        </div>
+                    )}
+                    {success && (
+                        <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="text-sm text-green-600 dark:text-green-400">{success}</span>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="name">Full Name</Label>
@@ -170,16 +232,50 @@ export default function VVBProfilePage() {
                             />
                         </div>
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="organization" className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                Organization
+                            </Label>
+                            <Input
+                                id="organization"
+                                value={organization}
+                                onChange={(e) => setOrganization(e.target.value)}
+                                placeholder="Enter your organization name"
+                                className="mt-2"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="phone" className="flex items-center gap-2">
+                                <Phone className="h-4 w-4" />
+                                Phone
+                            </Label>
+                            <Input
+                                id="phone"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="+1 234 567 8900"
+                                className="mt-2"
+                            />
+                        </div>
+                    </div>
+
                     <div>
-                        <Label htmlFor="organization">Organization</Label>
+                        <Label htmlFor="accreditationId" className="flex items-center gap-2">
+                            <Award className="h-4 w-4" />
+                            Accreditation ID
+                        </Label>
                         <Input
-                            id="organization"
-                            value={organization}
-                            onChange={(e) => setOrganization(e.target.value)}
-                            placeholder="Enter your organization name"
+                            id="accreditationId"
+                            value={accreditationId}
+                            onChange={(e) => setAccreditationId(e.target.value)}
+                            placeholder="Enter your VVB accreditation ID"
                             className="mt-2"
                         />
                     </div>
+
                     <Button
                         onClick={handleSaveProfile}
                         disabled={saving}
@@ -187,7 +283,7 @@ export default function VVBProfilePage() {
                     >
                         {saving ? (
                             <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <Loader2 className="h-4 w-4 animate-spin" />
                                 Saving...
                             </div>
                         ) : (
@@ -210,6 +306,19 @@ export default function VVBProfilePage() {
                     <CardDescription>Update your password for security</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    {passwordError && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <span className="text-sm text-red-600 dark:text-red-400">{passwordError}</span>
+                        </div>
+                    )}
+                    {passwordSuccess && (
+                        <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="text-sm text-green-600 dark:text-green-400">{passwordSuccess}</span>
+                        </div>
+                    )}
+
                     <div>
                         <Label htmlFor="currentPassword">Current Password</Label>
                         <Input
@@ -245,9 +354,16 @@ export default function VVBProfilePage() {
                     <Button
                         variant="outline"
                         onClick={handleChangePassword}
-                        disabled={!currentPassword || !newPassword || !confirmPassword}
+                        disabled={!currentPassword || !newPassword || !confirmPassword || changingPassword}
                     >
-                        Update Password
+                        {changingPassword ? (
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Updating...
+                            </div>
+                        ) : (
+                            "Update Password"
+                        )}
                     </Button>
                 </CardContent>
             </Card>

@@ -15,7 +15,8 @@ from backend.modules.vvb.schemas import (
     VerificationTaskCreate, VerificationTaskUpdate, VerificationTaskResponse,
     VVBQueryCreate, VVBQueryUpdate, VVBQueryResponse,
     QueryResponseCreate, QueryResponseSchema,
-    VVBDashboardStats, VVBProjectSummary, QueryStatusEnum
+    VVBDashboardStats, VVBProjectSummary, QueryStatusEnum,
+    VVBProfileResponse, VVBProfileUpdate, VVBPasswordChange
 )
 
 router = APIRouter(prefix="/vvb", tags=["vvb"])
@@ -294,3 +295,105 @@ def resolve_query(
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")
     return query
+
+
+# ===== Profile Endpoints =====
+
+@router.get("/profile", response_model=VVBProfileResponse)
+def get_vvb_profile(
+    current_user: User = Depends(require_vvb_user)
+):
+    """Get current VVB user's profile"""
+    profile_data = current_user.profile_data or {}
+    return VVBProfileResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role),
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+        name=profile_data.get("name"),
+        organization=profile_data.get("organization"),
+        phone=profile_data.get("phone"),
+        accreditation_id=profile_data.get("accreditation_id"),
+        certifications=profile_data.get("certifications"),
+        profile_photo=profile_data.get("profilePhoto") or profile_data.get("profile_photo"),
+        notification_preferences=profile_data.get("notification_preferences")
+    )
+
+
+@router.put("/profile", response_model=VVBProfileResponse)
+def update_vvb_profile(
+    update_data: VVBProfileUpdate,
+    current_user: User = Depends(require_vvb_user),
+    db: Session = Depends(get_db)
+):
+    """Update VVB user's profile"""
+    profile_data = current_user.profile_data or {}
+    
+    # Update fields if provided
+    if update_data.name is not None:
+        profile_data["name"] = update_data.name
+    if update_data.organization is not None:
+        profile_data["organization"] = update_data.organization
+    if update_data.phone is not None:
+        profile_data["phone"] = update_data.phone
+    if update_data.accreditation_id is not None:
+        profile_data["accreditation_id"] = update_data.accreditation_id
+    if update_data.certifications is not None:
+        profile_data["certifications"] = update_data.certifications
+    if update_data.profile_photo is not None:
+        profile_data["profilePhoto"] = update_data.profile_photo
+    if update_data.notification_preferences is not None:
+        profile_data["notification_preferences"] = update_data.notification_preferences
+    
+    current_user.profile_data = profile_data
+    db.commit()
+    db.refresh(current_user)
+    
+    return VVBProfileResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role),
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+        name=profile_data.get("name"),
+        organization=profile_data.get("organization"),
+        phone=profile_data.get("phone"),
+        accreditation_id=profile_data.get("accreditation_id"),
+        certifications=profile_data.get("certifications"),
+        profile_photo=profile_data.get("profilePhoto"),
+        notification_preferences=profile_data.get("notification_preferences")
+    )
+
+
+@router.put("/profile/password")
+def change_vvb_password(
+    password_data: VVBPasswordChange,
+    current_user: User = Depends(require_vvb_user),
+    db: Session = Depends(get_db)
+):
+    """Change VVB user's password"""
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    # Verify current password
+    if not pwd_context.verify(password_data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Validate new password
+    if len(password_data.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 8 characters"
+        )
+    
+    # Hash and save new password
+    current_user.password_hash = pwd_context.hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
