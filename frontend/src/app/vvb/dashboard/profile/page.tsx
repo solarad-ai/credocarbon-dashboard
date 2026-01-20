@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { User, Building2, Shield, Key, Save, Phone, Award, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { User, Building2, Shield, Key, Save, Phone, Award, Loader2, AlertCircle, CheckCircle, Camera, Upload, ZoomIn, ZoomOut, RotateCw, Check, X, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { vvbApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface VVBProfile {
     id: number;
@@ -24,7 +28,16 @@ interface VVBProfile {
     profile_photo: string | null;
 }
 
+// Available avatars
+const avatars = [
+    { id: 1, src: "/avatars/avatar-1.png", name: "Avatar 1" },
+    { id: 2, src: "/avatars/avatar-2.png", name: "Avatar 2" },
+    { id: 3, src: "/avatars/avatar-3.png", name: "Avatar 3" },
+    { id: 4, src: "/avatars/avatar-4.png", name: "Avatar 4" },
+];
+
 export default function VVBProfilePage() {
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [profile, setProfile] = useState<VVBProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -43,6 +56,14 @@ export default function VVBProfilePage() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    // Photo upload states
+    const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+    const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+    const [tempPhoto, setTempPhoto] = useState<string | null>(null);
+    const [photoScale, setPhotoScale] = useState(1);
+    const [photoRotation, setPhotoRotation] = useState(0);
+    const [photoDialogTab, setPhotoDialogTab] = useState<"upload" | "avatar">("upload");
+
     useEffect(() => {
         loadProfile();
     }, []);
@@ -56,6 +77,7 @@ export default function VVBProfilePage() {
             setOrganization(data.organization || "");
             setPhone(data.phone || "");
             setAccreditationId(data.accreditation_id || "");
+            setProfilePhoto(data.profile_photo || null);
         } catch (err: any) {
             console.error("Failed to load profile:", err);
             setError("Failed to load profile. Please try again.");
@@ -74,6 +96,7 @@ export default function VVBProfilePage() {
                 organization,
                 phone,
                 accreditation_id: accreditationId,
+                profile_photo: profilePhoto || undefined,
             });
             setProfile(updatedProfile);
             setSuccess("Profile updated successfully!");
@@ -88,8 +111,10 @@ export default function VVBProfilePage() {
                     organization,
                     phone,
                     accreditation_id: accreditationId,
+                    profilePhoto: profilePhoto,
                 };
                 localStorage.setItem("user", JSON.stringify(parsed));
+                window.dispatchEvent(new Event("profileUpdated"));
             }
         } catch (err: any) {
             setError(err.message || "Failed to save profile");
@@ -128,6 +153,86 @@ export default function VVBProfilePage() {
         }
     };
 
+    // Photo upload handlers
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert("File size must be less than 2MB");
+                return;
+            }
+            if (!file.type.startsWith("image/")) {
+                alert("Please select an image file");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setTempPhoto(event.target?.result as string);
+                setPhotoScale(1);
+                setPhotoRotation(0);
+            };
+            reader.readAsDataURL(file);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const handleSavePhoto = async () => {
+        if (!tempPhoto) {
+            setShowPhotoDialog(false);
+            return;
+        }
+
+        const isAvatar = tempPhoto.startsWith("/avatars/");
+
+        if (isAvatar) {
+            setProfilePhoto(tempPhoto);
+        } else {
+            // Apply transformations with canvas
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            const img = new Image();
+
+            img.onload = () => {
+                const size = 200;
+                canvas.width = size;
+                canvas.height = size;
+
+                if (ctx) {
+                    ctx.clearRect(0, 0, size, size);
+                    ctx.save();
+                    ctx.translate(size / 2, size / 2);
+                    ctx.rotate((photoRotation * Math.PI) / 180);
+
+                    const scale = Math.max(size / img.width, size / img.height) * photoScale;
+                    const scaledWidth = img.width * scale;
+                    const scaledHeight = img.height * scale;
+
+                    ctx.drawImage(
+                        img,
+                        -scaledWidth / 2,
+                        -scaledHeight / 2,
+                        scaledWidth,
+                        scaledHeight
+                    );
+                    ctx.restore();
+
+                    const finalImage = canvas.toDataURL("image/jpeg", 0.9);
+                    setProfilePhoto(finalImage);
+                }
+            };
+            img.src = tempPhoto;
+        }
+
+        setShowPhotoDialog(false);
+        setTempPhoto(null);
+    };
+
+    const handleRemovePhoto = () => {
+        setProfilePhoto(null);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -141,6 +246,15 @@ export default function VVBProfilePage() {
 
     return (
         <div className="space-y-6 max-w-3xl">
+            {/* Hidden File Input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={handleFileSelect}
+                className="hidden"
+            />
+
             {/* Page Header */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
@@ -152,7 +266,7 @@ export default function VVBProfilePage() {
                 </p>
             </div>
 
-            {/* Account Info */}
+            {/* Account Info with Photo */}
             <Card className="border-slate-200 dark:border-slate-700">
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -161,22 +275,34 @@ export default function VVBProfilePage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden">
-                            {profile?.profile_photo ? (
-                                <img src={profile.profile_photo} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-2xl font-bold text-white">
-                                    {profile?.name?.charAt(0).toUpperCase() || "V"}
-                                </span>
-                            )}
+                    <div className="flex items-center gap-6">
+                        {/* Photo with hover overlay */}
+                        <div className="relative group">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden border-2 border-emerald-500/20">
+                                {profilePhoto ? (
+                                    <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <span className="text-2xl font-bold text-white">
+                                        {profile?.name?.charAt(0).toUpperCase() || "V"}
+                                    </span>
+                                )}
+                            </div>
+                            <div
+                                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                onClick={() => {
+                                    setPhotoDialogTab("upload");
+                                    setShowPhotoDialog(true);
+                                }}
+                            >
+                                <Camera className="h-6 w-6 text-white" />
+                            </div>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <p className="font-semibold text-slate-900 dark:text-white">
                                 {profile?.name || "VVB User"}
                             </p>
                             <p className="text-sm text-slate-500">{profile?.email}</p>
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex gap-2">
                                 <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                                     {profile?.role}
                                 </Badge>
@@ -184,6 +310,41 @@ export default function VVBProfilePage() {
                                     <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
                                         ✓ Verified
                                     </Badge>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setPhotoDialogTab("upload");
+                                        setTempPhoto(null);
+                                        setShowPhotoDialog(true);
+                                    }}
+                                >
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Upload Photo
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setPhotoDialogTab("avatar");
+                                        setShowPhotoDialog(true);
+                                    }}
+                                >
+                                    <User className="mr-2 h-4 w-4" />
+                                    Choose Avatar
+                                </Button>
+                                {profilePhoto && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleRemovePhoto}
+                                        className="text-red-600 hover:text-red-700"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 )}
                             </div>
                         </div>
@@ -367,6 +528,159 @@ export default function VVBProfilePage() {
                     </Button>
                 </CardContent>
             </Card>
+
+            {/* Photo Upload Dialog */}
+            <Dialog open={showPhotoDialog} onOpenChange={setShowPhotoDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Update Profile Photo</DialogTitle>
+                    </DialogHeader>
+
+                    <Tabs value={photoDialogTab} onValueChange={(v) => setPhotoDialogTab(v as any)}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="upload">Upload Photo</TabsTrigger>
+                            <TabsTrigger value="avatar">Choose Avatar</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="upload" className="space-y-4">
+                            {!tempPhoto ? (
+                                <div
+                                    className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center cursor-pointer hover:border-emerald-500 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+                                    <p className="text-sm text-slate-500">Click to upload a photo</p>
+                                    <p className="text-xs text-slate-400 mt-1">JPG or PNG, max 2MB</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Preview */}
+                                    <div className="flex justify-center">
+                                        <div
+                                            className="w-40 h-40 rounded-full overflow-hidden border-4 border-emerald-500/30"
+                                            style={{
+                                                transform: `scale(${photoScale}) rotate(${photoRotation}deg)`,
+                                            }}
+                                        >
+                                            <img
+                                                src={tempPhoto}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Controls */}
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label className="text-sm">Zoom</Label>
+                                                <span className="text-sm text-slate-500">{(photoScale * 100).toFixed(0)}%</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <ZoomOut className="h-4 w-4 text-slate-400" />
+                                                <Slider
+                                                    value={[photoScale]}
+                                                    min={0.5}
+                                                    max={2}
+                                                    step={0.1}
+                                                    onValueChange={(value) => setPhotoScale(value[0])}
+                                                    className="flex-1"
+                                                />
+                                                <ZoomIn className="h-4 w-4 text-slate-400" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                            <Label className="text-sm">Rotate</Label>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setPhotoRotation((prev) => (prev - 90 + 360) % 360)}
+                                                >
+                                                    <RotateCw className="h-4 w-4 rotate-180" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setPhotoRotation((prev) => (prev + 90) % 360)}
+                                                >
+                                                    <RotateCw className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Choose Different Photo
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="avatar" className="space-y-4">
+                            <p className="text-sm text-slate-500 text-center">
+                                Select a professional avatar
+                            </p>
+                            <div className="grid grid-cols-4 gap-4">
+                                {avatars.map((avatar) => (
+                                    <button
+                                        key={avatar.id}
+                                        className={cn(
+                                            "relative rounded-full overflow-hidden border-4 transition-all hover:scale-105",
+                                            tempPhoto === avatar.src
+                                                ? "border-emerald-500 ring-2 ring-emerald-500 ring-offset-2"
+                                                : "border-transparent hover:border-emerald-500/50"
+                                        )}
+                                        onClick={() => {
+                                            setTempPhoto(avatar.src);
+                                            setPhotoScale(1);
+                                            setPhotoRotation(0);
+                                        }}
+                                    >
+                                        <img
+                                            src={avatar.src}
+                                            alt={avatar.name}
+                                            className="w-full aspect-square object-cover"
+                                        />
+                                        {tempPhoto === avatar.src && (
+                                            <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
+                                                <Check className="h-6 w-6 text-emerald-600" />
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowPhotoDialog(false);
+                                setTempPhoto(null);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSavePhoto}
+                            disabled={!tempPhoto}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                        >
+                            <Check className="mr-2 h-4 w-4" />
+                            Save Photo
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
