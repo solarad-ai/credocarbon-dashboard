@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
@@ -305,21 +306,12 @@ export default function DashboardLayout({
                 {/* Logo Header */}
                 <div className={cn(
                     "h-24 py-4 flex items-center border-b border-slate-100 dark:border-slate-700/50 transition-all duration-300 overflow-visible",
-                    sidebarCollapsed ? "justify-center px-4" : "gap-4 px-8"
+                    sidebarCollapsed ? "justify-center px-4" : "gap-4 px-6"
                 )}>
-                    <div className={cn(
-                        "rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg ring-4 transition-all duration-300",
-                        colors.gradient,
-                        colors.ring,
-                        sidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
-                    )}>
-                        <Leaf className={cn("text-white", sidebarCollapsed ? "h-5 w-5" : "h-6 w-6")} />
-                    </div>
-                    {!sidebarCollapsed && (
-                        <div className="overflow-hidden">
-                            <h1 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">CredoCarbon</h1>
-                            <p className={cn("text-xs font-semibold uppercase tracking-wider", colors.textAccent)}>{roleLabel} Portal</p>
-                        </div>
+                    {sidebarCollapsed ? (
+                        <Image src="/logo.png" alt="CredoCarbon" width={48} height={48} className="object-contain" priority />
+                    ) : (
+                        <Image src="/logo.png" alt="CredoCarbon" width={200} height={80} className="object-contain" priority />
                     )}
                 </div>
 
@@ -399,16 +391,8 @@ export default function DashboardLayout({
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
                     <aside className="fixed top-0 left-0 h-full w-72 bg-white dark:bg-slate-800 shadow-2xl">
                         {/* Logo Header */}
-                        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700/50">
-                            <div className="flex items-center gap-4">
-                                <div className={cn(
-                                    "w-12 h-12 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg",
-                                    colors.gradient
-                                )}>
-                                    <Leaf className="h-6 w-6 text-white" />
-                                </div>
-                                <h1 className="font-bold text-xl text-slate-900 dark:text-white">CredoCarbon</h1>
-                            </div>
+                        <div className="h-20 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-700/50">
+                            <Image src="/logo.png" alt="CredoCarbon" width={160} height={60} className="object-contain" priority />
                             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)} className="rounded-xl">
                                 <X className="h-5 w-5" />
                             </Button>

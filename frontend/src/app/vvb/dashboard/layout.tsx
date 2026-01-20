@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
     ClipboardCheck,
     LayoutDashboard,
@@ -118,11 +119,12 @@ export default function VVBDashboardLayout({
                 >
                     {/* Logo */}
                     <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-                        <Link href="/vvb/dashboard" className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                                <ClipboardCheck className="h-5 w-5 text-white" />
-                            </div>
-                            {!sidebarCollapsed && <span className="font-bold text-lg text-slate-900 dark:text-white">VVB Portal</span>}
+                        <Link href="/vvb/dashboard">
+                            {sidebarCollapsed ? (
+                                <Image src="/logo.png" alt="CredoCarbon" width={48} height={48} className="object-contain" priority />
+                            ) : (
+                                <Image src="/logo.png" alt="CredoCarbon" width={160} height={60} className="object-contain" priority />
+                            )}
                         </Link>
                     </div>
 
@@ -191,11 +193,8 @@ export default function VVBDashboardLayout({
             >
                 {/* Logo */}
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700">
-                    <Link href="/vvb/dashboard" className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                            <ClipboardCheck className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="font-bold text-lg text-slate-900 dark:text-white">VVB Portal</span>
+                    <Link href="/vvb/dashboard">
+                        <Image src="/logo.png" alt="CredoCarbon" width={140} height={50} className="object-contain" priority />
                     </Link>
                     <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" onClick={() => setSidebarOpen(false)}>
                         <X className="h-5 w-5 text-slate-500" />

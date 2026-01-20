@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
     Shield,
     LayoutDashboard,
@@ -129,11 +130,12 @@ export default function SuperAdminDashboardLayout({
             <TooltipProvider delayDuration={0}>
                 <aside className={`hidden lg:block fixed top-0 left-0 h-full bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 z-50 transition-all duration-300 ${sidebarCollapsed ? "w-20" : "w-64"}`}>
                     <div className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-700 ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-                        <Link href="/superadmin/dashboard" className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg">
-                                <Shield className="h-5 w-5 text-white" />
-                            </div>
-                            {!sidebarCollapsed && <span className="font-bold text-lg text-slate-900 dark:text-white">Super Admin</span>}
+                        <Link href="/superadmin/dashboard">
+                            {sidebarCollapsed ? (
+                                <Image src="/logo.png" alt="CredoCarbon" width={48} height={48} className="object-contain" priority />
+                            ) : (
+                                <Image src="/logo.png" alt="CredoCarbon" width={160} height={60} className="object-contain" priority />
+                            )}
                         </Link>
                     </div>
                     <nav className={`p-2 space-y-1 overflow-y-auto h-[calc(100%-10rem)] ${sidebarCollapsed ? "px-2" : "px-4"}`}>
@@ -165,9 +167,8 @@ export default function SuperAdminDashboardLayout({
             {/* Mobile Sidebar */}
             <aside className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 z-50 transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
                 <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 dark:border-slate-700">
-                    <Link href="/superadmin/dashboard" className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg"><Shield className="h-5 w-5 text-white" /></div>
-                        <span className="font-bold text-lg text-slate-900 dark:text-white">Super Admin</span>
+                    <Link href="/superadmin/dashboard">
+                        <Image src="/logo.png" alt="CredoCarbon" width={140} height={50} className="object-contain" priority />
                     </Link>
                     <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" onClick={() => setSidebarOpen(false)}><X className="h-5 w-5 text-slate-500" /></button>
                 </div>
