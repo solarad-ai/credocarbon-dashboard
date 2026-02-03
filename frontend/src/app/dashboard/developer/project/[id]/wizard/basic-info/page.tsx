@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import {
     ArrowLeft, ArrowRight, Save, Check, ChevronDown, ChevronUp,
-    MapPin, Building2, FileText, Upload, Globe, Zap, Calendar, Loader2
+    MapPin, Building2, FileText, Upload, Globe, Zap, Calendar, Loader2, ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ALL_COUNTRIES, COUNTRY_STATES, REGISTRATION_TYPES, SOLAR_MODULE_TYPES } from "@/lib/constants";
+import { ALL_COUNTRIES, COUNTRY_STATES, REGISTRATION_TYPES, SOLAR_MODULE_TYPES, COUNTRY_PHONE_CODES } from "@/lib/constants";
 import { projectApi } from "@/lib/api";
 
 const wizardSteps = [
@@ -101,6 +101,7 @@ export default function BasicInfoWizardPage() {
         { id: "govApprovals", label: "Government Approvals", required: true },
         { id: "envClearance", label: "Environmental Impact Clearance", required: true },
         { id: "gridApproval", label: "Grid Connectivity Approval", required: true },
+        { id: "carbonRights", label: "Rights to claim carbon credit & environmental attributes", required: true },
         { id: "ppaCopy", label: "PPA Copy", required: false },
         { id: "companyReg", label: "Company Registration Document", required: true },
         { id: "techCerts", label: "Technology Supplier Certificates", required: false },
@@ -125,7 +126,7 @@ export default function BasicInfoWizardPage() {
         // Block B - Location
         country: "",
         stateProvince: "",
-        district: "",
+        district: "London",
         siteAddress: "",
         latitude: "",
         longitude: "",
@@ -144,6 +145,7 @@ export default function BasicInfoWizardPage() {
         ownerType: "",
         signatoryName: "",
         signatoryEmail: "",
+        signatoryCountryCode: "+44",
         signatoryPhone: "",
         ownerAddress: "",
 
@@ -152,6 +154,16 @@ export default function BasicInfoWizardPage() {
         gridConnected: true,
         offtakerName: "",
         ppaDuration: "",
+
+        // Block F - Carbon Credit Eligibility Assessment
+        commissioningDate: "",
+        offtakerType: "", // 'GOVERNMENT' | 'UTILITY' | 'PRIVATE' | 'OTHER'
+        isPolicyDriven: false,
+        carbonRegistrationIntent: "", // 'BEFORE_COMMISSIONING' | 'WITHIN_2_YEARS' | 'AFTER_2_YEARS' | 'NOT_DECIDED'
+        additionalityJustification: "",
+        hostCountryArticle6Status: "", // 'CLEAR' | 'AMBIGUOUS' | 'HIGH_RISK'
+        isMerchant: false,
+        carbonRevenueMaterial: false,
     });
 
     // Load or Create Project on Mount
@@ -539,11 +551,36 @@ export default function BasicInfoWizardPage() {
                             </div>
 
 
-                            <div className="p-4 rounded-lg border-2 border-dashed bg-muted/30">
+                            <div
+                                className="p-6 rounded-lg border-2 border-dashed bg-muted/30 hover:border-primary/50 transition-colors cursor-pointer"
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                                    const file = e.dataTransfer.files?.[0];
+                                    if (file && (file.name.endsWith('.kml') || file.name.endsWith('.geojson') || file.name.endsWith('.json'))) {
+                                        handleFileUpload('projectBoundary', file);
+                                    }
+                                }}
+                                onClick={() => !uploadedDocs['projectBoundary'] && fileInputRefs.current['projectBoundary']?.click()}
+                            >
                                 <div className="text-center">
-                                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                    <p className="font-medium">Upload Project Boundary (KML/GeoJSON)</p>
-                                    <p className="text-sm text-muted-foreground mb-2">
+                                    <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                                    <p className="font-medium text-base">Upload Project Boundary (KML/GeoJSON)</p>
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                        Drag & drop your file here, or click to browse
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mb-3">
                                         Required for A/R, REDD+, and large-scale projects
                                     </p>
                                     <input
@@ -557,14 +594,17 @@ export default function BasicInfoWizardPage() {
                                         }}
                                     />
                                     {uploadedDocs['projectBoundary'] ? (
-                                        <div className="flex items-center justify-center gap-2">
+                                        <div className="flex items-center justify-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md">
                                             <Check className="h-4 w-4 text-green-600" />
-                                            <span className="text-sm text-green-600">{uploadedDocs['projectBoundary'].name}</span>
+                                            <span className="text-sm text-green-600 font-medium">{uploadedDocs['projectBoundary'].name}</span>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className="h-6 px-2 text-destructive hover:text-destructive"
-                                                onClick={() => handleFileRemove('projectBoundary')}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleFileRemove('projectBoundary');
+                                                }}
                                             >
                                                 ✕
                                             </Button>
@@ -573,13 +613,27 @@ export default function BasicInfoWizardPage() {
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => fileInputRefs.current['projectBoundary']?.click()}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                fileInputRefs.current['projectBoundary']?.click();
+                                            }}
                                         >
                                             Choose File
                                         </Button>
                                     )}
                                 </div>
                             </div>
+                            <p className="text-xs text-muted-foreground text-center mt-3">
+                                Need help creating a GeoJSON file?{" "}
+                                <a
+                                    href="https://support.planet.com/hc/en-us/articles/360016337117-Creating-a-GeoJSON-file"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                >
+                                    Learn how to create one here
+                                </a>
+                            </p>
                         </div>
                     </CollapsibleBlock>
 
@@ -768,14 +822,31 @@ export default function BasicInfoWizardPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="sigPhone">Phone *</Label>
-                                        <Input
-                                            id="sigPhone"
-                                            type="tel"
-                                            placeholder="+91 98765 43210"
-                                            value={formData.signatoryPhone}
-                                            onChange={(e) => setFormData({ ...formData, signatoryPhone: e.target.value })}
-                                            className="h-11"
-                                        />
+                                        <div className="flex gap-2">
+                                            <Select
+                                                value={formData.signatoryCountryCode}
+                                                onValueChange={(value) => setFormData({ ...formData, signatoryCountryCode: value })}
+                                            >
+                                                <SelectTrigger className="h-11 w-32">
+                                                    <SelectValue placeholder="Code" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {COUNTRY_PHONE_CODES.map((item) => (
+                                                        <SelectItem key={item.code} value={item.code}>
+                                                            {item.flag} {item.code}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Input
+                                                id="sigPhone"
+                                                type="tel"
+                                                placeholder="98765 43210"
+                                                value={formData.signatoryPhone}
+                                                onChange={(e) => setFormData({ ...formData, signatoryPhone: e.target.value })}
+                                                className="h-11 flex-1"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -844,12 +915,12 @@ export default function BasicInfoWizardPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="ppaDuration">PPA Duration (months)</Label>
+                                <Label htmlFor="ppaDuration">PPA Duration (years)</Label>
                                 <Input
                                     id="ppaDuration"
                                     type="number"
                                     min="0"
-                                    placeholder="e.g., 300 (25 years)"
+                                    placeholder="e.g., 25"
                                     value={formData.ppaDuration}
                                     onChange={(e) => {
                                         const value = e.target.value;
@@ -859,12 +930,156 @@ export default function BasicInfoWizardPage() {
                                     }}
                                     className="h-11 w-full md:w-1/3"
                                 />
-                                <p className="text-xs text-muted-foreground">Enter duration in months (e.g., 300 months = 25 years)</p>
+                                <p className="text-xs text-muted-foreground">Enter PPA duration in years</p>
                             </div>
                         </div>
                     </CollapsibleBlock>
 
-                    {/* Block F: Supporting Documents */}
+                    {/* Block F: Carbon Credit Eligibility Assessment */}
+                    <CollapsibleBlock
+                        title="Carbon Credit Eligibility Assessment"
+                        icon={<ShieldCheck className="h-5 w-5 text-primary" />}
+                        required
+                    >
+                        <div className="space-y-6">
+                            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Important Assessment</p>
+                                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                            This information helps determine your project's eligibility for carbon credit registration.
+                                            Please answer accurately as it affects the credit estimation results.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="commissioningDate">Project Commissioning Date *</Label>
+                                    <Input
+                                        id="commissioningDate"
+                                        type="date"
+                                        value={formData.commissioningDate}
+                                        onChange={(e) => setFormData({ ...formData, commissioningDate: e.target.value })}
+                                        className="h-11"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Date when the project started/will start operations</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="offtakerType">Offtaker Type *</Label>
+                                    <Select
+                                        value={formData.offtakerType}
+                                        onValueChange={(value) => setFormData({ ...formData, offtakerType: value })}
+                                    >
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue placeholder="Select offtaker type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="GOVERNMENT">Government Entity</SelectItem>
+                                            <SelectItem value="UTILITY">Regulated Utility</SelectItem>
+                                            <SelectItem value="PRIVATE">Private Corporate</SelectItem>
+                                            <SelectItem value="OTHER">Other / No Offtaker</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">Type of entity purchasing the power</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="carbonRegistrationIntent">Carbon Registration Intent *</Label>
+                                    <Select
+                                        value={formData.carbonRegistrationIntent}
+                                        onValueChange={(value) => setFormData({ ...formData, carbonRegistrationIntent: value })}
+                                    >
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue placeholder="Select timing" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="BEFORE_COMMISSIONING">Before project commissioning</SelectItem>
+                                            <SelectItem value="WITHIN_2_YEARS">Within 2 years of commissioning</SelectItem>
+                                            <SelectItem value="AFTER_2_YEARS">More than 2 years after commissioning</SelectItem>
+                                            <SelectItem value="NOT_DECIDED">Not yet decided</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">When did/will carbon registration intent become documented?</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="hostCountryArticle6Status">Host Country Article 6 Status *</Label>
+                                    <Select
+                                        value={formData.hostCountryArticle6Status}
+                                        onValueChange={(value) => setFormData({ ...formData, hostCountryArticle6Status: value })}
+                                    >
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CLEAR">Clear framework - Low double-counting risk</SelectItem>
+                                            <SelectItem value="AMBIGUOUS">Ambiguous framework - Some uncertainty</SelectItem>
+                                            <SelectItem value="HIGH_RISK">High risk of double counting</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">Paris Agreement Article 6 compliance status</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                                    <Checkbox
+                                        id="isPolicyDriven"
+                                        checked={formData.isPolicyDriven}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isPolicyDriven: checked as boolean })}
+                                    />
+                                    <div>
+                                        <Label htmlFor="isPolicyDriven" className="cursor-pointer">Policy-Driven Program</Label>
+                                        <p className="text-xs text-muted-foreground">Is this project part of a government renewable mandate, auction, or policy-driven program?</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                                    <Checkbox
+                                        id="isMerchant"
+                                        checked={formData.isMerchant}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, isMerchant: checked as boolean })}
+                                    />
+                                    <div>
+                                        <Label htmlFor="isMerchant" className="cursor-pointer">Merchant / Partially Merchant Project</Label>
+                                        <p className="text-xs text-muted-foreground">Does this project have no guaranteed offtake or sell power on the open market?</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                                    <Checkbox
+                                        id="carbonRevenueMaterial"
+                                        checked={formData.carbonRevenueMaterial}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, carbonRevenueMaterial: checked as boolean })}
+                                    />
+                                    <div>
+                                        <Label htmlFor="carbonRevenueMaterial" className="cursor-pointer">Carbon Revenue is Material</Label>
+                                        <p className="text-xs text-muted-foreground">Is carbon credit revenue material to the project's financial viability or IRR?</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="additionalityJustification">Additionality Justification *</Label>
+                                <Textarea
+                                    id="additionalityJustification"
+                                    placeholder="Describe why this project would not have been viable without carbon credit revenue. Include financial, regulatory, or barrier analysis..."
+                                    value={formData.additionalityJustification}
+                                    onChange={(e) => setFormData({ ...formData, additionalityJustification: e.target.value })}
+                                    className="min-h-[120px]"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Minimum 50 characters required. Explain financial barriers, technology barriers, institutional barriers, or regulatory challenges.
+                                </p>
+                            </div>
+                        </div>
+                    </CollapsibleBlock>
+
+                    {/* Block G: Supporting Documents */}
                     <CollapsibleBlock
                         title="Supporting Documents"
                         icon={<Upload className="h-5 w-5 text-primary" />}

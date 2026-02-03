@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import {
     ArrowLeft, ArrowRight, Save, Check, ChevronDown, ChevronUp,
-    Upload, FileText, Database, BarChart3, AlertCircle, Loader2, Globe, CheckCircle2
+    Upload, FileText, Database, BarChart3, AlertCircle, Loader2, Globe, CheckCircle2,
+    ShieldAlert, ShieldCheck, XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import {
     type GridEmissionFactor,
     type EstimationResult
 } from "@/lib/api";
+import { evaluateEligibility, type EligibilityResult, type ProjectEligibilityData } from "@/lib/carbonEligibility";
 
 const wizardSteps = [
     { id: 1, name: "Basic Info", active: true },
@@ -130,6 +132,9 @@ export default function CreditEstimationWizardPage() {
     const [isEstimating, setIsEstimating] = useState(false);
     const [estimationResult, setEstimationResult] = useState<EstimationResult | null>(null);
 
+    // Eligibility state
+    const [eligibilityResult, setEligibilityResult] = useState<EligibilityResult | null>(null);
+
     // Load initial data
     useEffect(() => {
         async function loadInitialData() {
@@ -187,6 +192,26 @@ export default function CreditEstimationWizardPage() {
                         if (wd?.estimationResult) {
                             setEstimationResult(wd.estimationResult);
                         }
+
+                        // Evaluate carbon credit eligibility
+                        const eligibilityData: ProjectEligibilityData = {
+                            installedCapacityDC: wd?.installedCapacityDC,
+                            installedCapacityAC: wd?.installedCapacityAC,
+                            installedCapacity: wd?.installedCapacity,
+                            ppaDuration: wd?.ppaDuration,
+                            offtakeType: wd?.offtakeType,
+                            creditingPeriodStart: wd?.creditingPeriodStart,
+                            commissioningDate: wd?.commissioningDate,
+                            offtakerType: wd?.offtakerType,
+                            isPolicyDriven: wd?.isPolicyDriven,
+                            carbonRegistrationIntent: wd?.carbonRegistrationIntent,
+                            additionalityJustification: wd?.additionalityJustification,
+                            hostCountryArticle6Status: wd?.hostCountryArticle6Status,
+                            isMerchant: wd?.isMerchant,
+                            carbonRevenueMaterial: wd?.carbonRevenueMaterial,
+                        };
+                        const eligibility = evaluateEligibility(eligibilityData);
+                        setEligibilityResult(eligibility);
                     } catch (e) {
                         // Project may not exist yet
                         console.log('Could not load project data:', e);
@@ -803,6 +828,128 @@ export default function CreditEstimationWizardPage() {
                             )}
                         </div>
                     </CollapsibleBlock>
+
+                    {/* Eligibility Assessment Results */}
+                    {eligibilityResult && (
+                        <CollapsibleBlock
+                            title="Carbon Credit Eligibility Assessment"
+                            icon={eligibilityResult.hardFailTriggered ?
+                                <ShieldAlert className="h-5 w-5 text-destructive" /> :
+                                <ShieldCheck className="h-5 w-5 text-primary" />
+                            }
+                            defaultOpen={true}
+                            completed={!eligibilityResult.hardFailTriggered}
+                        >
+                            <div className="space-y-4">
+                                {/* Main Result Card */}
+                                <div className={cn(
+                                    "p-4 rounded-lg border-2",
+                                    eligibilityResult.hardFailTriggered
+                                        ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800"
+                                        : eligibilityResult.confidenceLevel === 'HIGH'
+                                            ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-800"
+                                            : eligibilityResult.confidenceLevel === 'MEDIUM'
+                                                ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-800"
+                                                : "bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-800"
+                                )}>
+                                    <div className="flex items-start gap-4">
+                                        {eligibilityResult.hardFailTriggered ? (
+                                            <XCircle className="h-8 w-8 text-red-600 mt-1 flex-shrink-0" />
+                                        ) : eligibilityResult.confidenceLevel === 'HIGH' ? (
+                                            <CheckCircle2 className="h-8 w-8 text-green-600 mt-1 flex-shrink-0" />
+                                        ) : (
+                                            <AlertCircle className="h-8 w-8 text-amber-600 mt-1 flex-shrink-0" />
+                                        )}
+                                        <div className="flex-1">
+                                            <h3 className={cn(
+                                                "text-lg font-semibold",
+                                                eligibilityResult.hardFailTriggered ? "text-red-800 dark:text-red-200" :
+                                                    eligibilityResult.confidenceLevel === 'HIGH' ? "text-green-800 dark:text-green-200" :
+                                                        "text-amber-800 dark:text-amber-200"
+                                            )}>
+                                                {eligibilityResult.recommendation}
+                                            </h3>
+                                            {!eligibilityResult.hardFailTriggered && (
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Confidence Score: <span className="font-semibold">{eligibilityResult.confidenceScore}%</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Hard Fail Details */}
+                                {eligibilityResult.hardFailTriggered && (
+                                    <div className="space-y-3">
+                                        <h4 className="font-medium text-destructive">Hard Fail Conditions Triggered:</h4>
+                                        <div className="space-y-2">
+                                            {eligibilityResult.hardFailReasons
+                                                .filter(r => r.triggered)
+                                                .map(fail => (
+                                                    <div key={fail.id} className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800">
+                                                        <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-red-800 dark:text-red-200">{fail.condition}</p>
+                                                            {fail.reason && (
+                                                                <p className="text-xs text-red-600 dark:text-red-300 mt-1">{fail.reason}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Soft Signals (only if no hard fail) */}
+                                {!eligibilityResult.hardFailTriggered && (
+                                    <div className="space-y-3">
+                                        <h4 className="font-medium">Eligibility Signals:</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            {eligibilityResult.softSignals.map(signal => (
+                                                <div
+                                                    key={signal.id}
+                                                    className={cn(
+                                                        "flex items-start gap-2 p-3 rounded-lg border",
+                                                        signal.present
+                                                            ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                                                            : "bg-muted/50 border-muted"
+                                                    )}
+                                                >
+                                                    {signal.present ? (
+                                                        <Check className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                                    ) : (
+                                                        <div className="h-4 w-4 border border-muted-foreground/30 rounded mt-0.5 flex-shrink-0" />
+                                                    )}
+                                                    <p className={cn(
+                                                        "text-sm",
+                                                        signal.present ? "text-green-800 dark:text-green-200" : "text-muted-foreground"
+                                                    )}>
+                                                        {signal.signal}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Risk Warnings */}
+                                {eligibilityResult.riskWarnings.length > 0 && (
+                                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                        <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">Risk Warnings:</h4>
+                                        <ul className="space-y-1">
+                                            {eligibilityResult.riskWarnings.map((warning, i) => (
+                                                <li key={i} className="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                                                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                                    {warning}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </CollapsibleBlock>
+                    )}
 
                     {/* Step 5: Results */}
                     {estimationResult && (

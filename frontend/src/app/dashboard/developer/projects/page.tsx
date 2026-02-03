@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -77,6 +78,11 @@ export default function ProjectsListPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Multi-select deletion state
+    const [selectedProjects, setSelectedProjects] = useState<Set<number>>(new Set());
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteProgress, setDeleteProgress] = useState("");
+
     useEffect(() => {
         fetchProjects();
     }, []);
@@ -91,6 +97,64 @@ export default function ProjectsListPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Toggle selection of a single project
+    const toggleProjectSelection = (projectId: number) => {
+        setSelectedProjects(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(projectId)) {
+                newSet.delete(projectId);
+            } else {
+                newSet.add(projectId);
+            }
+            return newSet;
+        });
+    };
+
+    // Toggle select all (for filtered projects)
+    const toggleSelectAll = () => {
+        if (selectedProjects.size === filteredProjects.length) {
+            setSelectedProjects(new Set());
+        } else {
+            setSelectedProjects(new Set(filteredProjects.map(p => p.id)));
+        }
+    };
+
+    // Bulk delete handler
+    const handleBulkDelete = async () => {
+        const count = selectedProjects.size;
+        if (count === 0) return;
+
+        if (!confirm(`Are you sure you want to delete ${count} project${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
+            return;
+        }
+
+        setIsDeleting(true);
+        const projectIds = Array.from(selectedProjects);
+        let deletedCount = 0;
+        const failedIds: number[] = [];
+
+        for (const id of projectIds) {
+            try {
+                setDeleteProgress(`Deleting ${deletedCount + 1} of ${count}...`);
+                await projectApi.delete(id);
+                deletedCount++;
+            } catch (error) {
+                console.error(`Failed to delete project ${id}:`, error);
+                failedIds.push(id);
+            }
+        }
+
+        setIsDeleting(false);
+        setDeleteProgress("");
+        setSelectedProjects(new Set());
+
+        if (failedIds.length > 0) {
+            alert(`Deleted ${deletedCount} project(s). Failed to delete ${failedIds.length} project(s).`);
+        }
+
+        fetchProjects();
     };
 
     const handleDelete = async (e: React.MouseEvent, projectId: number) => {
@@ -144,6 +208,8 @@ export default function ProjectsListPage() {
 
     return (
         <div className="space-y-6">
+
+
             {/* Page Title */}
             <div className="flex items-center justify-between">
                 <div>
@@ -159,6 +225,50 @@ export default function ProjectsListPage() {
                     </Link>
                 </FeatureGate>
             </div>
+
+            {/* Bulk Actions Bar - appears when items selected */}
+            {selectedProjects.size > 0 && (
+                <div className="flex items-center justify-between p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    <div className="flex items-center gap-3">
+                        <Checkbox
+                            checked={filteredProjects.length > 0 && selectedProjects.size === filteredProjects.length}
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Select all"
+                        />
+                        <span className="text-sm font-medium text-destructive">
+                            {selectedProjects.size} project{selectedProjects.size > 1 ? 's' : ''} selected
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedProjects(new Set())}
+                            className="text-muted-foreground"
+                        >
+                            Clear selection
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {deleteProgress}
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Selected
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <Card>
@@ -215,6 +325,13 @@ export default function ProjectsListPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-12">
+                                <Checkbox
+                                    checked={filteredProjects.length > 0 && selectedProjects.size === filteredProjects.length}
+                                    onCheckedChange={toggleSelectAll}
+                                    aria-label="Select all"
+                                />
+                            </TableHead>
                             <TableHead>Code</TableHead>
                             <TableHead>Project Name</TableHead>
                             <TableHead>Type</TableHead>
@@ -226,7 +343,7 @@ export default function ProjectsListPage() {
                     <TableBody>
                         {filteredProjects.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                                     No projects found matching your filters.
                                 </TableCell>
                             </TableRow>
@@ -234,8 +351,19 @@ export default function ProjectsListPage() {
                             filteredProjects.map((project) => (
                                 <TableRow
                                     key={project.id}
-                                    className="hover:bg-muted/50 group"
+                                    className={cn(
+                                        "hover:bg-muted/50 group",
+                                        selectedProjects.has(project.id) && "bg-primary/5"
+                                    )}
                                 >
+                                    <TableCell className="w-12">
+                                        <Checkbox
+                                            checked={selectedProjects.has(project.id)}
+                                            onCheckedChange={() => toggleProjectSelection(project.id)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            aria-label={`Select ${project.name}`}
+                                        />
+                                    </TableCell>
                                     <TableCell
                                         className="font-mono text-xs text-muted-foreground cursor-pointer"
                                         onClick={(e) => handleView(e, project)}
