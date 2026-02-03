@@ -126,7 +126,7 @@ export default function BasicInfoWizardPage() {
         // Block B - Location
         country: "",
         stateProvince: "",
-        district: "London",
+        district: "",
         siteAddress: "",
         latitude: "",
         longitude: "",
@@ -532,7 +532,7 @@ export default function BasicInfoWizardPage() {
                                     <Label htmlFor="district">District / City *</Label>
                                     <Input
                                         id="district"
-                                        placeholder="e.g., Jodhpur"
+                                        placeholder="e.g., London"
                                         value={formData.district}
                                         onChange={(e) => setFormData({ ...formData, district: e.target.value })}
                                         className="h-11"

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { isSessionValid } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app';
 
@@ -16,12 +17,22 @@ export default function DeveloperLoginPage() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isCheckingSession, setIsCheckingSession] = useState(true);
     const [error, setError] = useState("");
     const [formData, setFormData] = useState({
         email: "",
         password: "",
         rememberMe: false,
     });
+
+    // Check if user is already logged in, redirect to dashboard
+    useEffect(() => {
+        if (isSessionValid()) {
+            router.push("/dashboard/developer");
+        } else {
+            setIsCheckingSession(false);
+        }
+    }, [router]);
 
     // Force light mode on login page
     useEffect(() => {
@@ -46,8 +57,15 @@ export default function DeveloperLoginPage() {
             const data = await response.json();
 
             if (response.ok) {
+                // Calculate token expiry based on rememberMe
+                const expiryDays = formData.rememberMe ? 30 : 1;
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
                 localStorage.setItem("token", data.access_token);
+                localStorage.setItem("tokenExpiry", expiryDate.toISOString());
                 localStorage.setItem("user", JSON.stringify(data.user));
+                localStorage.setItem("rememberMe", String(formData.rememberMe));
                 router.push("/dashboard/developer");
             } else {
                 setError(data.detail || "Invalid email or password");
@@ -58,6 +76,15 @@ export default function DeveloperLoginPage() {
             setIsLoading(false);
         }
     };
+
+    // Show loading while checking session
+    if (isCheckingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex">
