@@ -1004,6 +1004,11 @@ export default function BasicInfoWizardPage() {
                                     </div>
                                 </div>
                             </div>
+                            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                <p className="text-xs text-blue-700 dark:text-blue-300">
+                                    💡 <span className="font-medium">Hint:</span> Not sure about some answers? Don't worry — you can update any field here at any time before final submission. Your eligibility score will automatically recalculate when you make changes. None of these selections are final until the project is formally submitted for validation.
+                                </p>
+                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -1076,6 +1081,9 @@ export default function BasicInfoWizardPage() {
                             </div>
 
                             <div className="space-y-4">
+                                <p className="text-xs text-muted-foreground italic">
+                                    These checkboxes are soft eligibility signals — they adjust your confidence score but do not cause a hard rejection. If unsure, it's safe to leave them unchecked.
+                                </p>
                                 <div className="flex items-center space-x-3 p-3 rounded-lg border">
                                     <Checkbox
                                         id="isPolicyDriven"
@@ -1085,6 +1093,7 @@ export default function BasicInfoWizardPage() {
                                     <div>
                                         <Label htmlFor="isPolicyDriven" className="cursor-pointer">Policy-Driven Program</Label>
                                         <p className="text-xs text-muted-foreground">Is this project part of a government renewable mandate, auction, or policy-driven program?</p>
+                                        <p className="text-xs text-muted-foreground/70 mt-0.5">Not sure? If your project wasn't awarded through a government tender or mandate, leave this unchecked.</p>
                                     </div>
                                 </div>
 
@@ -1097,6 +1106,7 @@ export default function BasicInfoWizardPage() {
                                     <div>
                                         <Label htmlFor="isMerchant" className="cursor-pointer">Merchant / Partially Merchant Project</Label>
                                         <p className="text-xs text-muted-foreground">Does this project have no guaranteed offtake or sell power on the open market?</p>
+                                        <p className="text-xs text-muted-foreground/70 mt-0.5">Not sure? Check this if you sell power at market price without a long-term buyer contract.</p>
                                     </div>
                                 </div>
 
@@ -1109,6 +1119,7 @@ export default function BasicInfoWizardPage() {
                                     <div>
                                         <Label htmlFor="carbonRevenueMaterial" className="cursor-pointer">Carbon Revenue is Material</Label>
                                         <p className="text-xs text-muted-foreground">Is carbon credit revenue material to the project's financial viability or IRR?</p>
+                                        <p className="text-xs text-muted-foreground/70 mt-0.5">Not sure? Check this if the project's financial model depends on income from carbon credits to be viable.</p>
                                     </div>
                                 </div>
                             </div>

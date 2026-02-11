@@ -171,7 +171,19 @@ export default function CreditEstimationWizardPage() {
                             setCurrentStep(wd.currentStep);
                         }
                         if (wd?.uploadedFile) {
-                            setUploadedFile(wd.uploadedFile);
+                            // Re-fetch file preview to verify the file is still available on the server
+                            try {
+                                const preview = await generationApi.getPreview(wd.uploadedFile.id);
+                                setFilePreview(preview);
+                                setUploadedFile(wd.uploadedFile);
+                            } catch (previewErr) {
+                                // File is no longer available on the server (Cloud Run /tmp is ephemeral)
+                                // Clear stale file reference and ask user to re-upload
+                                console.log('Uploaded file no longer available on server:', previewErr);
+                                setUploadedFile(null);
+                                setCurrentStep('upload');
+                                setError('Your previously uploaded file is no longer available on the server. Please re-upload your generation data file.');
+                            }
                         }
                         if (wd?.columnMapping) {
                             setColumnMapping(wd.columnMapping);
@@ -408,7 +420,9 @@ export default function CreditEstimationWizardPage() {
         }
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
+        // Auto-save before navigating to next step
+        await handleSaveDraft();
         router.push(`/dashboard/developer/project/${projectId}/wizard/stakeholders?type=${projectType}`);
     };
 
