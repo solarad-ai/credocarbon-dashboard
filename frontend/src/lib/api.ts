@@ -29,20 +29,125 @@ const getHeaders = (includeAuth: boolean = true): HeadersInit => {
     return headers;
 };
 
-// Generic API request handler
+// Token refresh state to avoid multiple concurrent refresh attempts
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Attempt to refresh the access token using the stored refresh token.
+ * Returns true if refresh succeeded, false otherwise.
+ */
+async function tryRefreshToken(): Promise<boolean> {
+    // If a refresh is already in progress, wait for it
+    if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+    }
+
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+    if (!refreshToken) {
+        return false;
+    }
+
+    isRefreshing = true;
+    refreshPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+
+            if (!response.ok) {
+                return false;
+            }
+
+            const data = await response.json();
+            localStorage.setItem('token', data.access_token);
+            localStorage.setItem('refreshToken', data.refresh_token);
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
+
+            // Update tokenExpiry based on whether "Remember Me" was selected
+            const rememberMe = localStorage.getItem('rememberMe') === 'true';
+            const expiryDays = rememberMe ? 30 : 1;
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + expiryDays);
+            localStorage.setItem('tokenExpiry', expiryDate.toISOString());
+
+            return true;
+        } catch {
+            return false;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    })();
+
+    return refreshPromise;
+}
+
+/**
+ * Clear session and redirect to login
+ */
+function handleSessionExpired(): void {
+    if (typeof window === 'undefined') return;
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('tokenExpiry');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberMe');
+
+    // Determine redirect based on current path
+    const path = window.location.pathname;
+    if (path.includes('/buyer')) {
+        window.location.href = '/buyer/login';
+    } else {
+        window.location.href = '/developer/login';
+    }
+}
+
+// Generic API request handler with automatic token refresh
 async function apiRequest<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
         ...options,
         headers: {
             ...getHeaders(!options.headers),
             ...options.headers,
         },
     });
+
+    // If 401, try refreshing the token and retry once
+    if (response.status === 401) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+            // Retry the request with the new token
+            response = await fetch(url, {
+                ...options,
+                headers: {
+                    ...getHeaders(true),
+                    // Re-apply any custom headers except auth (which we just refreshed)
+                    ...(options.headers ? Object.fromEntries(
+                        Object.entries(options.headers as Record<string, string>).filter(
+                            ([key]) => key.toLowerCase() !== 'authorization'
+                        )
+                    ) : {}),
+                },
+            });
+        }
+
+        // If still 401 after refresh attempt, session is truly expired
+        if (response.status === 401) {
+            handleSessionExpired();
+            throw new Error('Session expired. Please log in again.');
+        }
+    }
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Request failed' }));

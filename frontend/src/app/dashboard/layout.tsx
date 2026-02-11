@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
-import { isSessionValid, clearSession } from "@/lib/auth";
+import { isSessionValidAsync, clearSession } from "@/lib/auth";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -12,18 +12,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     const [isValidating, setIsValidating] = useState(true);
 
     useEffect(() => {
-        // Check if session is valid on mount
-        if (!isSessionValid()) {
-            clearSession();
-            // Redirect to appropriate login page
-            if (pathname.startsWith("/dashboard/buyer")) {
-                router.push("/buyer/login");
+        // Check if session is valid on mount (with async refresh attempt)
+        const checkSession = async () => {
+            const valid = await isSessionValidAsync();
+            if (!valid) {
+                clearSession();
+                // Redirect to appropriate login page
+                if (pathname.startsWith("/dashboard/buyer")) {
+                    router.push("/buyer/login");
+                } else {
+                    router.push("/developer/login");
+                }
             } else {
-                router.push("/developer/login");
+                setIsValidating(false);
             }
-        } else {
-            setIsValidating(false);
-        }
+        };
+        checkSession();
     }, [pathname, router]);
 
     // Show nothing while validating to prevent flash of dashboard content

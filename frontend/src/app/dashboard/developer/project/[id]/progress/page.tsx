@@ -27,7 +27,7 @@ interface Project {
 // Wizard steps
 const wizardSteps = [
     { id: "basic-info", label: "Basic Info", icon: FileText },
-    { id: "credit-estimation", label: "Credit Estimation", icon: BarChart3 },
+    { id: "credit-estimation", label: "Registry Selection", icon: BarChart3 },
     { id: "stakeholders", label: "Stakeholders", icon: Users },
     { id: "compliance", label: "Compliance", icon: Shield },
     { id: "registry-submission", label: "Registry Package", icon: Package },

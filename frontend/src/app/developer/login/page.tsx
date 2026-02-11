@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { isSessionValid } from "@/lib/auth";
+import { isSessionValidAsync } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app';
 
@@ -27,11 +27,15 @@ export default function DeveloperLoginPage() {
 
     // Check if user is already logged in, redirect to dashboard
     useEffect(() => {
-        if (isSessionValid()) {
-            router.push("/dashboard/developer");
-        } else {
-            setIsCheckingSession(false);
-        }
+        const checkSession = async () => {
+            const valid = await isSessionValidAsync();
+            if (valid) {
+                router.push("/dashboard/developer");
+            } else {
+                setIsCheckingSession(false);
+            }
+        };
+        checkSession();
     }, [router]);
 
     // Force light mode on login page
@@ -63,6 +67,7 @@ export default function DeveloperLoginPage() {
                 expiryDate.setDate(expiryDate.getDate() + expiryDays);
 
                 localStorage.setItem("token", data.access_token);
+                localStorage.setItem("refreshToken", data.refresh_token); // Store refresh token
                 localStorage.setItem("tokenExpiry", expiryDate.toISOString());
                 localStorage.setItem("user", JSON.stringify(data.user));
                 localStorage.setItem("rememberMe", String(formData.rememberMe));

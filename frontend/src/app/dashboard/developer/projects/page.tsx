@@ -94,6 +94,26 @@ export default function ProjectsListPage() {
             setProjects(data as Project[]);
         } catch (err) {
             console.error("Error fetching projects:", err);
+
+            // Check if error is due to authentication
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('403')) {
+                console.warn("Authentication failed while fetching projects. Session may be invalid.");
+
+                // Clear invalid session
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('tokenExpiry');
+                localStorage.removeItem('user');
+                localStorage.removeItem('rememberMe');
+
+                // Redirect to login
+                alert('Your session has expired. Please log in again.');
+                router.push('/developer/login');
+            } else {
+                // Show error message for other types of errors
+                alert(`Failed to load projects: ${errorMessage}. Please try refreshing the page.`);
+            }
         } finally {
             setLoading(false);
         }

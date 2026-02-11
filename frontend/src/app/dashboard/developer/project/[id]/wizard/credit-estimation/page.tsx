@@ -37,7 +37,7 @@ import { evaluateEligibility, type EligibilityResult, type ProjectEligibilityDat
 
 const wizardSteps = [
     { id: 1, name: "Basic Info", active: true },
-    { id: 2, name: "Generation Data", active: true },
+    { id: 2, name: "Registry Selection", active: true },
     { id: 3, name: "Stakeholders", active: false },
     { id: 4, name: "Compliance", active: false },
     { id: 5, name: "Registry Package", active: false },
@@ -117,6 +117,7 @@ export default function CreditEstimationWizardPage() {
 
     // Mapping state
     const [columnMapping, setColumnMapping] = useState<DatasetMapping | null>(null);
+    const [isSavingMapping, setIsSavingMapping] = useState(false);
 
     // Methodology state
     const [methodologies, setMethodologies] = useState<MethodologyInfo[]>([]);
@@ -266,14 +267,24 @@ export default function CreditEstimationWizardPage() {
 
     // Handle mapping completion
     const handleMappingComplete = async (mapping: DatasetMapping) => {
-        if (!uploadedFile) return;
+        if (!uploadedFile) {
+            setError('No file uploaded. Please upload a file first.');
+            return;
+        }
+
+        setIsSavingMapping(true);
+        setError(null);
 
         try {
             await generationApi.saveMapping(uploadedFile.id, mapping);
             setColumnMapping(mapping);
             setCurrentStep('methodology');
         } catch (err) {
-            setError((err as Error).message);
+            const errorMessage = (err as Error).message;
+            setError(`Failed to save column mapping: ${errorMessage}`);
+            console.error('Column mapping save error:', err);
+        } finally {
+            setIsSavingMapping(false);
         }
     };
 
@@ -675,7 +686,7 @@ export default function CreditEstimationWizardPage() {
                                 </Button>
                             </Link>
                             <div>
-                                <h1 className="font-semibold">Generation Data & Estimation</h1>
+                                <h1 className="font-semibold">Registry Selection</h1>
                                 <p className="text-sm text-muted-foreground">Step 2 of 6</p>
                             </div>
                         </div>
@@ -724,112 +735,7 @@ export default function CreditEstimationWizardPage() {
                         </Alert>
                     )}
 
-                    {/* Step 1: Data Upload */}
-                    <CollapsibleBlock
-                        title="Data Upload"
-                        icon={<Upload className="h-5 w-5 text-primary" />}
-                        defaultOpen={currentStep === 'upload'}
-                        required
-                        completed={!!uploadedFile}
-                    >
-                        <div className="space-y-4">
-                            <Alert className="border-blue-200 bg-blue-50">
-                                <AlertCircle className="h-4 w-4 text-blue-600" />
-                                <AlertDescription className="text-blue-800">
-                                    Upload your generation data (CSV or Excel). The file should contain timestamps and
-                                    generation values (power or energy readings).
-                                </AlertDescription>
-                            </Alert>
-
-                            <FileUploadZone
-                                onFileAccepted={handleFileUpload}
-                                isUploading={isUploading}
-                                uploadProgress={uploadProgress}
-                                uploadedFile={uploadedFile ? {
-                                    name: uploadedFile.original_filename,
-                                    size: uploadedFile.file_size_bytes,
-                                    status: uploadedFile.status
-                                } : null}
-                                onRemoveFile={handleRemoveFile}
-                            />
-                        </div>
-                    </CollapsibleBlock>
-
-                    {/* Step 2: Column Mapping */}
-                    {filePreview && (
-                        <CollapsibleBlock
-                            title="Column Mapping"
-                            icon={<FileText className="h-5 w-5 text-primary" />}
-                            defaultOpen={currentStep === 'mapping'}
-                            required
-                            completed={!!columnMapping}
-                        >
-                            <ColumnMappingForm
-                                columns={filePreview.columns}
-                                previewRows={filePreview.preview_rows}
-                                onMappingComplete={handleMappingComplete}
-                                onValidate={handleValidateMapping}
-                            />
-                        </CollapsibleBlock>
-                    )}
-
-                    {/* Step 3: Methodology Selection */}
-                    <CollapsibleBlock
-                        title="Methodology Selection"
-                        icon={<Database className="h-5 w-5 text-primary" />}
-                        defaultOpen={currentStep === 'methodology' || (!uploadedFile && !estimationResult)}
-                        required
-                        completed={!!selectedMethodology}
-                    >
-                        <MethodologySelector
-                            methodologies={methodologies}
-                            projectType={projectType}
-                            onSelect={handleMethodologySelect}
-                            selectedMethodologyId={selectedMethodology?.id}
-                        />
-                    </CollapsibleBlock>
-
-                    {/* Step 4: Grid Emission Factor */}
-                    <CollapsibleBlock
-                        title="Grid Emission Factor"
-                        icon={<Globe className="h-5 w-5 text-primary" />}
-                        defaultOpen={currentStep === 'gridEF'}
-                        required
-                        completed={!!selectedGridEF}
-                    >
-                        <div className="space-y-4">
-                            <GridEFSelector
-                                emissionFactors={gridEFs}
-                                onSelect={handleGridEFSelect}
-                                selectedCountryCode={selectedGridEF?.country_code || projectCountry}
-                                customEFValue={customEFValue}
-                            />
-
-                            {selectedGridEF && selectedMethodology && (
-                                <div className="flex justify-end pt-4">
-                                    <Button
-                                        onClick={handleRunEstimation}
-                                        disabled={isEstimating}
-                                        className="gap-2"
-                                    >
-                                        {isEstimating ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Calculating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <BarChart3 className="h-4 w-4" />
-                                                Run Credit Estimation
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </CollapsibleBlock>
-
-                    {/* Eligibility Assessment Results */}
+                    {/* Eligibility Assessment Results - Shown First */}
                     {eligibilityResult && (
                         <CollapsibleBlock
                             title="Carbon Credit Eligibility Assessment"
@@ -950,6 +856,113 @@ export default function CreditEstimationWizardPage() {
                             </div>
                         </CollapsibleBlock>
                     )}
+
+                    {/* Step 1: Data Upload */}
+                    <CollapsibleBlock
+                        title="Data Upload"
+                        icon={<Upload className="h-5 w-5 text-primary" />}
+                        defaultOpen={currentStep === 'upload'}
+                        required
+                        completed={!!uploadedFile}
+                    >
+                        <div className="space-y-4">
+                            <Alert className="border-blue-200 bg-blue-50">
+                                <AlertCircle className="h-4 w-4 text-blue-600" />
+                                <AlertDescription className="text-blue-800">
+                                    Upload your generation data (CSV or Excel). The file should contain timestamps and
+                                    generation values (power or energy readings).
+                                </AlertDescription>
+                            </Alert>
+
+                            <FileUploadZone
+                                onFileAccepted={handleFileUpload}
+                                isUploading={isUploading}
+                                uploadProgress={uploadProgress}
+                                uploadedFile={uploadedFile ? {
+                                    name: uploadedFile.original_filename,
+                                    size: uploadedFile.file_size_bytes,
+                                    status: uploadedFile.status
+                                } : null}
+                                onRemoveFile={handleRemoveFile}
+                            />
+                        </div>
+                    </CollapsibleBlock>
+
+                    {/* Step 2: Column Mapping */}
+                    {filePreview && (
+                        <CollapsibleBlock
+                            title="Column Mapping"
+                            icon={<FileText className="h-5 w-5 text-primary" />}
+                            defaultOpen={currentStep === 'mapping'}
+                            required
+                            completed={!!columnMapping}
+                        >
+                            <ColumnMappingForm
+                                columns={filePreview.columns}
+                                previewRows={filePreview.preview_rows}
+                                onMappingComplete={handleMappingComplete}
+                                onValidate={handleValidateMapping}
+                                isSubmitting={isSavingMapping}
+                            />
+                        </CollapsibleBlock>
+                    )}
+
+                    {/* Step 3: Methodology Selection */}
+                    <CollapsibleBlock
+                        title="Methodology Selection"
+                        icon={<Database className="h-5 w-5 text-primary" />}
+                        defaultOpen={currentStep === 'methodology' || (!uploadedFile && !estimationResult)}
+                        required
+                        completed={!!selectedMethodology}
+                    >
+                        <MethodologySelector
+                            methodologies={methodologies}
+                            projectType={projectType}
+                            onSelect={handleMethodologySelect}
+                            selectedMethodologyId={selectedMethodology?.id}
+                            eligibilityResult={eligibilityResult}
+                        />
+                    </CollapsibleBlock>
+
+                    {/* Step 4: Grid Emission Factor */}
+                    <CollapsibleBlock
+                        title="Grid Emission Factor"
+                        icon={<Globe className="h-5 w-5 text-primary" />}
+                        defaultOpen={currentStep === 'gridEF'}
+                        required
+                        completed={!!selectedGridEF}
+                    >
+                        <div className="space-y-4">
+                            <GridEFSelector
+                                emissionFactors={gridEFs}
+                                onSelect={handleGridEFSelect}
+                                selectedCountryCode={selectedGridEF?.country_code || projectCountry}
+                                customEFValue={customEFValue}
+                            />
+
+                            {selectedGridEF && selectedMethodology && (
+                                <div className="flex justify-end pt-4">
+                                    <Button
+                                        onClick={handleRunEstimation}
+                                        disabled={isEstimating}
+                                        className="gap-2"
+                                    >
+                                        {isEstimating ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Calculating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <BarChart3 className="h-4 w-4" />
+                                                Run Credit Estimation
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </CollapsibleBlock>
 
                     {/* Step 5: Results */}
                     {estimationResult && (

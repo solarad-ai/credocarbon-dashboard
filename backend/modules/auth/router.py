@@ -118,6 +118,50 @@ def get_profile(current_user = Depends(get_current_user)):
     """Get current user profile"""
     return current_user
 
+@router.post("/refresh", response_model=Token)
+def refresh_token(request: dict, service: AuthService = Depends(get_auth_service)):
+    """Use a refresh token to get a new access token + refresh token pair"""
+    refresh_token_str = request.get("refresh_token")
+    if not refresh_token_str:
+        raise HTTPException(status_code=400, detail="refresh_token is required")
+    
+    try:
+        payload = jwt.decode(refresh_token_str, SECRET_KEY, algorithms=[ALGORITHM])
+        # Verify this is actually a refresh token
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        user_id = payload.get("id")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Refresh token expired or invalid")
+    
+    from backend.core.models import User
+    user = service.db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
+    
+    # Issue new tokens
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    new_access_token = service.create_access_token(
+        data={"sub": user.email, "role": user.role, "id": user.id},
+        expires_delta=access_token_expires
+    )
+    new_refresh_token = service.create_refresh_token(
+        data={"sub": user.email, "role": user.role, "id": user.id}
+    )
+    
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer",
+        "refresh_token": new_refresh_token,
+        "user": user,
+    }
+
+
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest):
     # Always return success message

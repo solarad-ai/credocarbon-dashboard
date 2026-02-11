@@ -17,7 +17,7 @@ import { projectApi } from "@/lib/api";
 
 const wizardSteps = [
     { id: 1, name: "Basic Info", completed: true },
-    { id: 2, name: "Generation Data", completed: true },
+    { id: 2, name: "Registry Selection", completed: true },
     { id: 3, name: "Stakeholders", completed: true },
     { id: 4, name: "Compliance", active: true },
     { id: 5, name: "Registry Package", active: false },

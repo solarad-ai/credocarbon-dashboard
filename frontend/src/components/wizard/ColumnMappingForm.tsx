@@ -17,6 +17,7 @@ interface ColumnMappingFormProps {
     onMappingComplete: (mapping: DatasetMapping) => void;
     onValidate?: (mapping: DatasetMapping) => Promise<MappingValidation>;
     initialMapping?: Partial<DatasetMapping>;
+    isSubmitting?: boolean;
 }
 
 const FREQUENCY_OPTIONS = [
@@ -51,6 +52,7 @@ export function ColumnMappingForm({
     onMappingComplete,
     onValidate,
     initialMapping,
+    isSubmitting = false,
 }: ColumnMappingFormProps) {
     const [mapping, setMapping] = useState<DatasetMapping>({
         timestamp_column: initialMapping?.timestamp_column || '',
@@ -86,10 +88,25 @@ export function ColumnMappingForm({
         if (!onValidate) return;
 
         setIsValidating(true);
+
+        // Add timeout to prevent infinite loading state
+        const timeoutId = setTimeout(() => {
+            setIsValidating(false);
+            setValidation({
+                valid: false,
+                errors: ['Validation timed out. Please try again or continue without validation.'],
+                warnings: [],
+                sample_conversion: null,
+                detected_frequency: null,
+            });
+        }, 30000); // 30 second timeout
+
         try {
             const result = await onValidate(mapping);
+            clearTimeout(timeoutId);
             setValidation(result);
         } catch (error) {
+            clearTimeout(timeoutId);
             setValidation({
                 valid: false,
                 errors: [(error as Error).message],
@@ -310,11 +327,20 @@ export function ColumnMappingForm({
                     )}
                     <Button
                         onClick={handleSubmit}
-                        disabled={!isComplete}
+                        disabled={!isComplete || isSubmitting}
                         className="ml-auto"
                     >
-                        Continue
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        {isSubmitting ? (
+                            <>
+                                <span className="mr-2 animate-spin">⏳</span>
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                Continue
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </>
+                        )}
                     </Button>
                 </div>
             </CardContent>

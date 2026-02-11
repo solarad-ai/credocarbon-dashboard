@@ -20,7 +20,7 @@ import { projectApi } from "@/lib/api";
 
 const wizardSteps = [
     { id: 1, name: "Basic Info", active: true },
-    { id: 2, name: "Generation Data", active: false },
+    { id: 2, name: "Registry Selection", active: false },
     { id: 3, name: "Stakeholders", active: false },
     { id: 4, name: "Compliance", active: false },
     { id: 5, name: "Registry Package", active: false },
@@ -94,6 +94,7 @@ export default function BasicInfoWizardPage() {
     const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | "unsaved">("saved");
     const [projectId, setProjectId] = useState<number | null>(null);
     const [availableStates, setAvailableStates] = useState<string[]>([]);
+    const [phoneValidationError, setPhoneValidationError] = useState<string>("");
 
     // Document types for file upload
     const documentTypes = [
@@ -331,7 +332,33 @@ export default function BasicInfoWizardPage() {
         setIsSaving(false);
     };
 
+    // Helper function to validate phone number
+    const validatePhoneNumber = (): boolean => {
+        if (!formData.signatoryPhone) {
+            setPhoneValidationError("");
+            return true; // Empty is allowed, required validation is separate
+        }
+
+        const countryCodeDigits = formData.signatoryCountryCode.replace(/\D/g, '').length;
+        const phoneDigits = formData.signatoryPhone.replace(/\D/g, '').length;
+        const totalDigits = countryCodeDigits + phoneDigits;
+
+        if (totalDigits !== 12) {
+            setPhoneValidationError(`Phone must be exactly 12 digits total. Current: ${totalDigits} digits (${countryCodeDigits} country code + ${phoneDigits} phone)`);
+            return false;
+        }
+
+        setPhoneValidationError("");
+        return true;
+    };
+
     const handleNext = () => {
+        // Validate phone number before proceeding
+        if (!validatePhoneNumber()) {
+            alert(phoneValidationError);
+            return;
+        }
+
         saveDraftToStorage(); // Save before navigating
         // Use the actual project ID if available, otherwise show error
         if (projectId) {
@@ -825,7 +852,11 @@ export default function BasicInfoWizardPage() {
                                         <div className="flex gap-2">
                                             <Select
                                                 value={formData.signatoryCountryCode}
-                                                onValueChange={(value) => setFormData({ ...formData, signatoryCountryCode: value })}
+                                                onValueChange={(value) => {
+                                                    setFormData({ ...formData, signatoryCountryCode: value });
+                                                    // Revalidate phone on country code change
+                                                    setTimeout(() => validatePhoneNumber(), 0);
+                                                }}
                                             >
                                                 <SelectTrigger className="h-11 w-32">
                                                     <SelectValue placeholder="Code" />
@@ -843,10 +874,29 @@ export default function BasicInfoWizardPage() {
                                                 type="tel"
                                                 placeholder="98765 43210"
                                                 value={formData.signatoryPhone}
-                                                onChange={(e) => setFormData({ ...formData, signatoryPhone: e.target.value })}
-                                                className="h-11 flex-1"
+                                                onChange={(e) => {
+                                                    setFormData({ ...formData, signatoryPhone: e.target.value });
+                                                    // Validate on change
+                                                    setTimeout(() => validatePhoneNumber(), 0);
+                                                }}
+                                                onBlur={validatePhoneNumber}
+                                                className={cn(
+                                                    "h-11 flex-1",
+                                                    phoneValidationError && "border-destructive focus-visible:ring-destructive"
+                                                )}
                                             />
                                         </div>
+                                        {phoneValidationError && (
+                                            <p className="text-xs text-destructive">{phoneValidationError}</p>
+                                        )}
+                                        {formData.signatoryPhone && !phoneValidationError && (
+                                            <p className="text-xs text-green-600">
+                                                ✓ Valid: {formData.signatoryCountryCode.replace(/\D/g, '').length + formData.signatoryPhone.replace(/\D/g, '').length} digits total
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            Total must be exactly 12 digits including country code
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -1202,7 +1252,7 @@ export default function BasicInfoWizardPage() {
 
                         {/* Right: Primary action */}
                         <Button onClick={handleNext} className="gradient-primary text-white btn-shine">
-                            Next: Generation Data
+                            Next: Registry Selection
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     </div>

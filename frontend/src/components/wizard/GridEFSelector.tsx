@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -122,33 +121,36 @@ export function GridEFSelector({
                     {isLoading ? (
                         <div className="animate-pulse bg-gray-100 h-10 rounded-md" />
                     ) : (
-                        <Select
-                            value={selectedCountryCode}
-                            onValueChange={handleSelect}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select country" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-80">
-                                {Object.entries(groupedEFs).map(([region, efs]) => (
+                        <div className="border rounded-md max-h-60 overflow-y-auto">
+                            {Object.entries(groupedEFs).length === 0 ? (
+                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                    No countries found for &quot;{searchQuery}&quot;
+                                </div>
+                            ) : (
+                                Object.entries(groupedEFs).map(([region, efs]) => (
                                     <div key={region}>
-                                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
+                                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50 sticky top-0 border-b">
                                             {region}
                                         </div>
                                         {efs.map((ef, index) => (
-                                            <SelectItem key={`${ef.country_code}-${ef.region_code || index}`} value={ef.country_code}>
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span>{ef.country_name}</span>
-                                                    <span className={`ml-4 font-mono text-sm ${getEFColor(ef.combined_margin || 0)}`}>
-                                                        {ef.combined_margin?.toFixed(3) || '-'}
-                                                    </span>
-                                                </div>
-                                            </SelectItem>
+                                            <div
+                                                key={`${ef.country_code}-${ef.region_code || index}`}
+                                                onClick={() => handleSelect(ef.country_code)}
+                                                className={`flex items-center justify-between px-3 py-2 cursor-pointer text-sm transition-colors hover:bg-primary/10 ${selectedCountryCode === ef.country_code
+                                                    ? 'bg-primary/15 font-medium'
+                                                    : ''
+                                                    }`}
+                                            >
+                                                <span>{ef.country_name}</span>
+                                                <span className={`ml-4 font-mono text-sm ${getEFColor(ef.combined_margin || 0)}`}>
+                                                    {ef.combined_margin?.toFixed(3) || '-'}
+                                                </span>
+                                            </div>
                                         ))}
                                     </div>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                ))
+                            )}
+                        </div>
                     )}
                 </div>
 

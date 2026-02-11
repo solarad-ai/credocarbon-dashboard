@@ -2,9 +2,11 @@
  * Authentication utilities for session management
  */
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://credocarbon-api-641001192587.asia-south2.run.app/api';
+
 /**
- * Check if the current session token is valid (not expired)
- * @returns true if token exists and hasn't expired
+ * Check if the current session token is valid (not expired) based on client-side expiry
+ * @returns true if token exists and client-side expiry hasn't passed
  */
 export function isSessionValid(): boolean {
     if (typeof window === 'undefined') return false;
@@ -20,6 +22,70 @@ export function isSessionValid(): boolean {
     const now = new Date();
 
     return now < expiryDate;
+}
+
+/**
+ * Attempt to refresh the access token using the stored refresh token.
+ * @returns true if refresh succeeded, false otherwise
+ */
+export async function tryRefreshSession(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+
+        if (!response.ok) {
+            return false;
+        }
+
+        const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('refreshToken', data.refresh_token);
+        if (data.user) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+        }
+
+        // Update tokenExpiry based on whether "Remember Me" was selected
+        const rememberMe = localStorage.getItem('rememberMe') === 'true';
+        const expiryDays = rememberMe ? 30 : 1;
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + expiryDays);
+        localStorage.setItem('tokenExpiry', expiryDate.toISOString());
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Async session validity check: first checks client-side expiry, 
+ * if invalid, attempts to refresh the token before giving up.
+ * Use this in route guards / layout components.
+ * @returns true if session is valid (possibly after refresh)
+ */
+export async function isSessionValidAsync(): Promise<boolean> {
+    // If client-side expiry is still valid, session is good
+    if (isSessionValid()) {
+        return true;
+    }
+
+    // Client-side expiry passed, but we might have a valid refresh token
+    const hasRefreshToken = typeof window !== 'undefined' && !!localStorage.getItem('refreshToken');
+    if (hasRefreshToken) {
+        return tryRefreshSession();
+    }
+
+    return false;
 }
 
 /**
@@ -61,6 +127,7 @@ export function clearSession(): void {
     if (typeof window === 'undefined') return;
 
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('tokenExpiry');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberMe');
@@ -103,3 +170,4 @@ export function getSessionTimeRemaining(): string | null {
         return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`;
     }
 }
+
